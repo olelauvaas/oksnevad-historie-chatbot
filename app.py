@@ -14,8 +14,8 @@ openai.api_key = st.secrets["OPENAI_API_KEY"]
 os.environ["OPENAI_API_KEY"] = openai.api_key
 
 # 🎨 Streamlit-oppsett
-st.set_page_config(page_title="Historiefortelleren", page_icon="📖")
-st.title("📖 Historiefortelleren – reis i tid med AI")
+st.set_page_config(page_title="Historiefortelleren", page_icon="\U0001F4D6")
+st.title("\U0001F4D6 Historiefortelleren – reis i tid med AI")
 
 # 🧾 Brukerinput
 date = st.text_input("Skriv inn dato (DD.MM.ÅÅÅÅ)", placeholder="f.eks. 01.05.1945")
@@ -29,28 +29,30 @@ etnisitet = st.text_input("Hva slags etnisitet har ungdommene? (valgfritt)", pla
 def lag_pdf(tittel, tekst, bilde_path=None):
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
     c = canvas.Canvas(temp_file.name, pagesize=A4)
-
     c.setFont("Helvetica-Bold", 16)
     c.drawString(2 * cm, 28 * cm, tittel)
-
     y = 27 * cm
-
     if bilde_path:
         try:
             c.drawImage(bilde_path, 2 * cm, y - 12 * cm, width=12 * cm, height=12 * cm, preserveAspectRatio=True)
             y -= 13 * cm
         except Exception as e:
             print("Kunne ikke legge til bilde i PDF:", e)
-
     c.setFont("Helvetica", 12)
     for linje in tekst.split("\n"):
-        if y < 2 * cm:
-            c.showPage()
-            c.setFont("Helvetica", 12)
-            y = 27 * cm
-        c.drawString(2 * cm, y, linje[:100])
-        y -= 0.6 * cm
-
+        linje = linje.strip()
+        if not linje:
+            y -= 0.6 * cm
+            continue
+        while linje:
+            if y < 2 * cm:
+                c.showPage()
+                c.setFont("Helvetica", 12)
+                y = 27 * cm
+            cut = linje[:100]
+            c.drawString(2 * cm, y, cut)
+            linje = linje[100:]
+            y -= 0.6 * cm
     c.save()
     return temp_file.name
 
@@ -101,20 +103,43 @@ Historien skal inneholde refleksjoner om skole, arbeid, familie og samfunnet run
 Stilen skal være realistisk, ungdommelig og tilpasset videregående skole-elever.
 Avslutt med at ungdommene sender en personlig hilsen til eleven og hele Øksnevad videregående skole.
 Legg også til et visdomsord eller en inspirerende livsfilosofi som de gir med på veien – det kan være et sitat, eller noe de selv har funnet på, men det skal være meningsfullt for en elev i dag.
+Til slutt spør de om eleven har noen spørsmål de lurer på om deres tid.
 """
 
             response = openai.chat.completions.create(
                 model="gpt-4o",
                 messages=[
-                    {"role": "system", "content": "Du er en historieforteller. Historien blir fortalt i jeg-form av ungdommene selv som et kjærestepar i det historiske miljøet de lever i. De hilser på eleven som har reist i tid og avslutter med en personlig hilsen og visdomsord til Øksnevad vgs."},
+                    {"role": "system", "content": "Du er en historieforteller. Historien blir fortalt i jeg-form av ungdommene selv som et kjærestepar i det historiske miljøet de lever i. De hilser på eleven som har reist i tid og avslutter med en personlig hilsen og visdomsord til Øksnevad vgs. Til slutt spør de eleven om det er noe de lurer på om deres tid."},
                     {"role": "user", "content": story_prompt}
                 ],
                 max_tokens=3000
             )
 
             story = response.choices[0].message.content
-            st.markdown("### 📝 Her er historien:")
+            st.markdown("### \U0001F4DD Her er historien:")
             st.markdown(story)
+
+            followups = []
+            while True:
+                followup = st.text_input("Skriv et oppfølgingsspørsmål eller la stå tomt for å avslutte:", key=f"followup_{len(followups)}")
+                if followup:
+                    if st.button(f"Still spørsmål {len(followups) + 1}", key=f"button_{len(followups)}"):
+                        with st.spinner("De svarer..."):
+                            followup_response = openai.chat.completions.create(
+                                model="gpt-4o",
+                                messages=[
+                                    {"role": "system", "content": "Du svarer som ungdommene som akkurat har snakket med eleven fra Øksnevad. Svaret skal være i jeg-form og ungdommelig stil."},
+                                    {"role": "user", "content": f"Eleven spør: {followup}"}
+                                ]
+                            )
+                            answer = followup_response.choices[0].message.content
+                            st.markdown(f"### ❓ Spørsmål {len(followups)+1}:")
+                            st.markdown(f"**{followup}**")
+                            st.markdown("### 💬 Svar:")
+                            st.markdown(answer)
+                            followups.append((followup, answer))
+                else:
+                    break
 
             image_prompt = generer_bildeprompt(location, date, samfunnslag, etnisitet)
 
@@ -127,17 +152,21 @@ Legg også til et visdomsord eller en inspirerende livsfilosofi som de gir med p
             image_url = image_response.data[0].url
             image = Image.open(BytesIO(requests.get(image_url).content))
 
-            st.markdown("### 🖼️ Historisk illustrasjon:")
+            st.markdown("### \U0001F5BC️ Historisk illustrasjon:")
             st.image(image, caption=f"{location}, {date}")
 
             temp_image_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
             image.save(temp_image_file.name)
 
-            pdf_fil = lag_pdf(f"Historien fra {location} den {date}", story, temp_image_file.name)
+            full_story = story + "\n\n"
+            for i, (q, a) in enumerate(followups, start=1):
+                full_story += f"\nSpørsmål {i}: {q}\nSvar: {a}\n"
+
+            pdf_fil = lag_pdf(f"Historien fra {location} den {date}", full_story, temp_image_file.name)
 
             with open(pdf_fil, "rb") as f:
                 st.download_button(
-                    label="📄 Last ned historien som PDF (med bilde)",
+                    label="\U0001F4C4 Last ned historien som PDF (med bilde)",
                     data=f,
                     file_name=f"historie_{location}_{date}.pdf",
                     mime="application/pdf"
