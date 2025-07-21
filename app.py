@@ -1,6 +1,6 @@
 import streamlit as st
 import os
-from openai import OpenAI
+import openai
 from PIL import Image
 import requests
 from io import BytesIO
@@ -9,23 +9,23 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import cm
 
-# 🔐 Hent API-nøkkel fra Streamlit secrets
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+# 🔐 OpenAI API-nøkkel fra secrets
+openai.api_key = st.secrets["OPENAI_API_KEY"]
+os.environ["OPENAI_API_KEY"] = openai.api_key
 
 # 🎨 Streamlit-oppsett
 st.set_page_config(page_title="Historiefortelleren", page_icon="📖")
-st.title("📖 Historiefortelleren – reis i tid med AI")
+st.title("📖 Historiefortelleren – Tidsreise med ungdom i fokus")
 
-# 📜 Brukerinput
-year = st.text_input("Skriv inn årstall", placeholder="f.eks. 1917")
-location = st.text_input("Skriv inn sted/land", placeholder="f.eks. Petrograd, Russland")
-boy_name = st.text_input("Navn på gutten (valgfritt)")
-girl_name = st.text_input("Navn på jenta (valgfritt)")
+# 📅 Brukerinput
+year = st.text_input("Skriv inn et årstall du vil reise til", placeholder="f.eks. 1944")
+location = st.text_input("Skriv inn et sted/land", placeholder="f.eks. Normandie, Frankrike")
 
-# 📋 PDF-funksjon
+# 📄 PDF-funksjon
 def lag_pdf(tittel, tekst, bilde_path=None):
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
     c = canvas.Canvas(temp_file.name, pagesize=A4)
+
     c.setFont("Helvetica-Bold", 16)
     c.drawString(2 * cm, 28 * cm, tittel)
     y = 27 * cm
@@ -50,42 +50,48 @@ def lag_pdf(tittel, tekst, bilde_path=None):
     return temp_file.name
 
 # 🚀 Generer historie
-if st.button("Fortell meg en historie"):
+if st.button("Start tidsreisen!"):
     if not year or not location:
-        st.warning("Skriv inn både årstall og sted for å komme i gang.")
+        st.warning("Du må skrive inn både årstall og sted.")
     else:
-        with st.spinner("Reiser tilbake i tid..."):
+        with st.spinner("Skrur på tidsmaskinen..."):
             story_prompt = f"""
-Du skal skrive en realistisk og varm historie satt til {location} i året {year}. Historien skal handle om en gutt og en jente ({'gutten heter ' + boy_name if boy_name else 'du velger navnet på gutten'} og {'jenta heter ' + girl_name if girl_name else 'du velger navnet på jenta'}), og deres familier.
+Du er en AI-forteller som lager en levende fortelling for en norsk ungdom (16–19 år) på videregående.
 
-Historien skal være realistisk basert på tidsepoken, men fokusere på menneskelighet, håp og relasjoner. Dersom det er vanskelige historiske omstendigheter, nevnes det, men tonen skal være livsnær og ikke dyster.
+Eleven har valgt å reise tilbake til {location} i året {year}.
 
-Fortell det som en mini-novelle med tydelige beskrivelser og følelser. Avslutt gjerne med en liten refleksjon.
+Skriv en historie der eleven møter to ungdommer (en gutt og en jente på ca. 16–18 år). Historien fortelles av ungdommene selv, i førsteperson. De beskriver:
+
+- Hvem de er
+- Hvordan livet deres er som ungdom
+- Hvordan samfunnet rundt dem er
+- Hva de drømmer om og hva de frykter
+- Hvilke historiske hendelser de merker noe til (om relevant)
+
+Tonen skal være personlig, varm og naturlig, skrevet slik ungdom på vgs i Norge forstår og kan leve seg inn i. Gjør det ekte og engasjerende.
             """
 
-            chat_response = client.chat.completions.create(
+            response = openai.ChatCompletion.create(
                 model="gpt-4o",
                 messages=[
-                    {"role": "system", "content": "Du er Mark Twain, en historieforteller med kunnskap om verdenshistorien og menneskelig empati."},
+                    {"role": "system", "content": "Du er en empatisk ungdom med kunnskap om historien og evne til å fortelle levende historier fra ulike tider."},
                     {"role": "user", "content": story_prompt}
                 ],
                 max_tokens=3000
             )
 
-            story = chat_response.choices[0].message.content
-            st.markdown("### 📝 Her er historien:")
+            story = response["choices"][0]["message"]["content"]
+            st.markdown("### 🖋️ Historien:")
             st.markdown(story)
 
-            # 🖼️ Bilde fra DALL-E 3
-            image_prompt = f"A boy and a girl in {location} in the year {year}, realistic historical scene, soft natural light, emotional, cinematic"
-            image_response = client.images.generate(
+            image_prompt = f"Two teenagers (a boy and a girl) in {location} in the year {year}, realistic historical setting, cinematic lighting"
+            image_response = openai.Image.create(
                 model="dall-e-3",
                 prompt=image_prompt,
                 n=1,
                 size="1024x1024"
             )
-
-            image_url = image_response.data[0].url
+            image_url = image_response['data'][0]['url']
             image = Image.open(BytesIO(requests.get(image_url).content))
 
             st.markdown("### 🖼️ Historisk illustrasjon:")
@@ -94,11 +100,11 @@ Fortell det som en mini-novelle med tydelige beskrivelser og følelser. Avslutt 
             temp_image_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
             image.save(temp_image_file.name)
 
-            pdf_fil = lag_pdf(f"Historien fra {location} i {year}", story, temp_image_file.name)
+            pdf_fil = lag_pdf(f"Historien fra {location}, {year}", story, temp_image_file.name)
 
             with open(pdf_fil, "rb") as f:
                 st.download_button(
-                    label="📄 Last ned historien som PDF (med bilde)",
+                    label="📄 Last ned som PDF",
                     data=f,
                     file_name=f"historie_{location}_{year}.pdf",
                     mime="application/pdf"
