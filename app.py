@@ -32,7 +32,7 @@ def lag_pdf(tittel, tekst, bilde_path=None):
     c.setFont("Helvetica-Bold", 16)
     c.drawString(2 * cm, 28 * cm, tittel)
     y = 27 * cm
-    if bilde_path:
+    if bilde_path and os.path.exists(bilde_path):
         try:
             c.drawImage(bilde_path, 2 * cm, y - 12 * cm, width=12 * cm, height=12 * cm, preserveAspectRatio=True)
             y -= 13 * cm
@@ -143,26 +143,32 @@ Til slutt spør de om eleven har noen spørsmål de lurer på om deres tid.
 
             image_prompt = generer_bildeprompt(location, date, samfunnslag, etnisitet)
 
-            image_response = openai.images.generate(
-                model="dall-e-3",
-                prompt=image_prompt,
-                n=1,
-                size="1024x1024"
-            )
-            image_url = image_response.data[0].url
-            image = Image.open(BytesIO(requests.get(image_url).content))
+            try:
+                image_response = openai.images.generate(
+                    model="dall-e-3",
+                    prompt=image_prompt,
+                    n=1,
+                    size="1024x1024"
+                )
+                image_url = image_response.data[0].url
+                image = Image.open(BytesIO(requests.get(image_url).content))
 
-            st.markdown("### \U0001F5BC️ Historisk illustrasjon:")
-            st.image(image, caption=f"{location}, {date}")
+                st.markdown("### \U0001F5BC️ Historisk illustrasjon:")
+                st.image(image, caption=f"{location}, {date}")
 
-            temp_image_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-            image.save(temp_image_file.name)
+                temp_image_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+                image.save(temp_image_file.name)
+
+            except Exception as e:
+                st.error("Bilde kunne ikke genereres. Prøv å endre tid, sted eller gjøre prompten enklere.")
+                image = None
+                temp_image_file = None
 
             full_story = story + "\n\n"
             for i, (q, a) in enumerate(followups, start=1):
                 full_story += f"\nSpørsmål {i}: {q}\nSvar: {a}\n"
 
-            pdf_fil = lag_pdf(f"Historien fra {location} den {date}", full_story, temp_image_file.name)
+            pdf_fil = lag_pdf(f"Historien fra {location} den {date}", full_story, temp_image_file.name if temp_image_file else None)
 
             with open(pdf_fil, "rb") as f:
                 st.download_button(
