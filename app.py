@@ -100,20 +100,21 @@ if st.button("Fortell meg en historie"):
             story_prompt = f"""
 Skriv en realistisk og engasjerende historie satt til {location} den {date}.
 
-Når eleven ankommer som en tidsreisende, møter de to ungdommer (ca. 16–18 år) som er kjærester:
+Når eleven fra Øksnevad vgs ankommer som en tidsreisende, møter de to ungdommer (ca. 16–18 år) som er kjærester:
 - {'gutten heter ' + boy_name if boy_name else 'du velger navnet på gutten'}
 - {'jenta heter ' + girl_name if girl_name else 'du velger navnet på jenta'}
 - De kommer fra {'samfunnslaget ' + samfunnslag if samfunnslag else 'et samfunnslag som du velger basert på tid og sted'}
 
-Ungdommene forteller hvordan livet deres er i dette samfunnet, og deler tanker, drømmer og håp som kjærestepar.
-De reflekterer over skole, arbeid, familie, og samfunnet rundt seg. Hvis historiske hendelser finner sted på denne tiden, må det gjerne nevnes.
-Historien skal passe for ungdom på videregående skole og være troverdig.
+Ungdommene hilser eleven vennlig og snakker i jeg-form direkte til dem. De deler hvordan livet deres er i dette samfunnet og forteller om hverdag, drømmer, utfordringer og håp.
+Historien skal inneholde refleksjoner om skole, arbeid, familie og samfunnet rundt dem. Hvis historiske hendelser finner sted på denne tiden, må det gjerne nevnes.
+Stilen skal være realistisk, ungdommelig og tilpasset videregående skole-elever.
+Avslutt med at ungdommene sender en personlig hilsen til eleven og hele Øksnevad videregående skole.
 """
 
             response = openai.chat.completions.create(
                 model="gpt-4o",
                 messages=[
-                    {"role": "system", "content": "Du er en historieforteller. Historien blir fortalt av ungdommene selv som et kjærestepar i det historiske miljøet de lever i."},
+                    {"role": "system", "content": "Du er en historieforteller. Historien blir fortalt i jeg-form av ungdommene selv som et kjærestepar i det historiske miljøet de lever i. De hilser på eleven som har reist i tid og avslutter med en personlig hilsen til Øksnevad vgs."},
                     {"role": "user", "content": story_prompt}
                 ],
                 max_tokens=3000
