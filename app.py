@@ -22,6 +22,7 @@ date = st.text_input("Skriv inn dato (DD.MM.ÅÅÅÅ)", placeholder="f.eks. 01.0
 location = st.text_input("Skriv inn sted/land", placeholder="f.eks. Berlin, Tyskland")
 boy_name = st.text_input("Navn på gutten (valgfritt)")
 girl_name = st.text_input("Navn på jenta (valgfritt)")
+samfunnslag = st.text_input("Hvilket samfunnslag kommer de fra? (valgfritt)", placeholder="f.eks. arbeiderklasse, adelen, bønder, middelklasse")
 
 # 📄 PDF-funksjon
 def lag_pdf(tittel, tekst, bilde_path=None):
@@ -41,7 +42,7 @@ def lag_pdf(tittel, tekst, bilde_path=None):
             print("Kunne ikke legge til bilde i PDF:", e)
 
     c.setFont("Helvetica", 12)
-    for linje i tekst.split("\n"):
+    for linje in tekst.split("\n"):
         if y < 2 * cm:
             c.showPage()
             c.setFont("Helvetica", 12)
@@ -52,8 +53,8 @@ def lag_pdf(tittel, tekst, bilde_path=None):
     c.save()
     return temp_file.name
 
-# 🎯 Generer bildeprompt basert på dato og sted
-def generer_bildeprompt(location, date):
+# 🎯 Generer bildeprompt basert på dato, sted og samfunnslag
+def generer_bildeprompt(location, date, samfunnslag):
     try:
         year = int(date.split(".")[-1])
     except:
@@ -83,6 +84,9 @@ def generer_bildeprompt(location, date):
     elif year < 2000:
         stil += ", 1990s youth fashion"
 
+    if samfunnslag:
+        stil += f", visual cues of {samfunnslag} background"
+
     prompt = f"A {nasjonalitet} teenage couple (boy and girl, 16–18 years old) in love in {location} on {date}, {stil}"
     return prompt
 
@@ -99,6 +103,7 @@ Skriv en realistisk og engasjerende historie satt til {location} den {date}.
 Når eleven ankommer som en tidsreisende, møter de to ungdommer (ca. 16–18 år) som er kjærester:
 - {'gutten heter ' + boy_name if boy_name else 'du velger navnet på gutten'}
 - {'jenta heter ' + girl_name if girl_name else 'du velger navnet på jenta'}
+- De kommer fra {'samfunnslaget ' + samfunnslag if samfunnslag else 'et samfunnslag som du velger basert på tid og sted'}
 
 Ungdommene forteller hvordan livet deres er i dette samfunnet, og deler tanker, drømmer og håp som kjærestepar.
 De reflekterer over skole, arbeid, familie, og samfunnet rundt seg. Hvis historiske hendelser finner sted på denne tiden, må det gjerne nevnes.
@@ -118,7 +123,7 @@ Historien skal passe for ungdom på videregående skole og være troverdig.
             st.markdown("### 📝 Her er historien:")
             st.markdown(story)
 
-            image_prompt = generer_bildeprompt(location, date)
+            image_prompt = generer_bildeprompt(location, date, samfunnslag)
 
             image_response = openai.images.generate(
                 model="dall-e-3",
