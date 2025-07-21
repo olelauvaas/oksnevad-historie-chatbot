@@ -1,0 +1,11 @@
+streamlit
+langchain
+langchain-community
+faiss-cpu
+docx2txt
+openai>=1.1.0,<2.0.0
+tiktoken
+openai
+Pillow
+requests
+reportlab
