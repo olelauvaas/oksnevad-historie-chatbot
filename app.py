@@ -1,6 +1,6 @@
 import streamlit as st
 import os
-import openai
+from openai import OpenAI
 from PIL import Image
 import requests
 from io import BytesIO
@@ -10,26 +10,28 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.units import cm
 
 # 🔐 OpenAI API-nøkkel fra secrets
-openai.api_key = st.secrets["OPENAI_API_KEY"]
-os.environ["OPENAI_API_KEY"] = openai.api_key
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 # 🎨 Streamlit-oppsett
 st.set_page_config(page_title="Historiefortelleren", page_icon="📖")
-st.title("📖 Historiefortelleren – Tidsreise med ungdom i fokus")
+st.title("📖 Historiefortelleren – en reise tilbake i tid")
 
-# 📅 Brukerinput
-year = st.text_input("Skriv inn et årstall du vil reise til", placeholder="f.eks. 1944")
-location = st.text_input("Skriv inn et sted/land", placeholder="f.eks. Normandie, Frankrike")
+# 🧾 Brukerinput
+year = st.text_input("Skriv inn årstall", placeholder="f.eks. 1917")
+location = st.text_input("Skriv inn sted/land", placeholder="f.eks. Petrograd, Russland")
 
 # 📄 PDF-funksjon
 def lag_pdf(tittel, tekst, bilde_path=None):
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
     c = canvas.Canvas(temp_file.name, pagesize=A4)
 
+    # Tittel
     c.setFont("Helvetica-Bold", 16)
     c.drawString(2 * cm, 28 * cm, tittel)
+
     y = 27 * cm
 
+    # Bilde
     if bilde_path:
         try:
             c.drawImage(bilde_path, 2 * cm, y - 12 * cm, width=12 * cm, height=12 * cm, preserveAspectRatio=True)
@@ -37,6 +39,7 @@ def lag_pdf(tittel, tekst, bilde_path=None):
         except Exception as e:
             print("Kunne ikke legge til bilde i PDF:", e)
 
+    # Tekst
     c.setFont("Helvetica", 12)
     for linje in tekst.split("\n"):
         if y < 2 * cm:
@@ -52,60 +55,58 @@ def lag_pdf(tittel, tekst, bilde_path=None):
 # 🚀 Generer historie
 if st.button("Start tidsreisen!"):
     if not year or not location:
-        st.warning("Du må skrive inn både årstall og sted.")
+        st.warning("Skriv inn både årstall og sted for å komme i gang.")
     else:
-        with st.spinner("Skrur på tidsmaskinen..."):
-            story_prompt = f"""
-Du er en AI-forteller som lager en levende fortelling for en norsk ungdom (16–19 år) på videregående.
+        with st.spinner("Reiser tilbake i tid..."):
 
-Eleven har valgt å reise tilbake til {location} i året {year}.
+            # 🧠 Prompt
+            prompt = f"""
+Forestill deg at eleven har gått inn i en tidsmaskin og havner i {location} i året {year}. Når de kommer frem, møter de en gutt og en jente på 16–18 år.
 
-Skriv en historie der eleven møter to ungdommer (en gutt og en jente på ca. 16–18 år). Historien fortelles av ungdommene selv, i førsteperson. De beskriver:
+De to ungdommene forteller hvordan livet deres er som unge i denne tiden og på dette stedet. De snakker om hverdagen, utfordringer, håp og drømmer – og kanskje også om historiske hendelser som påvirker dem.
 
-- Hvem de er
-- Hvordan livet deres er som ungdom
-- Hvordan samfunnet rundt dem er
-- Hva de drømmer om og hva de frykter
-- Hvilke historiske hendelser de merker noe til (om relevant)
+Svarene skal være tilpasset dagens ungdom på Øksnevad vgs – altså realistisk, relaterbart og med en ungdommelig fortellerstil. Ikke gjør det for gammeldags. Språket skal være ungdommelig, lett å lese, og gjerne litt personlig og sårbart der det passer.
 
-Tonen skal være personlig, varm og naturlig, skrevet slik ungdom på vgs i Norge forstår og kan leve seg inn i. Gjør det ekte og engasjerende.
-            """
+Fortellingen skal fenge og gi innsikt i historiske forhold – gjennom øynene til ungdom som levde da.
+"""
 
-            response = openai.ChatCompletion.create(
+            response = client.chat.completions.create(
                 model="gpt-4o",
                 messages=[
-                    {"role": "system", "content": "Du er en empatisk ungdom med kunnskap om historien og evne til å fortelle levende historier fra ulike tider."},
-                    {"role": "user", "content": story_prompt}
+                    {"role": "system", "content": "Du er en ungdom som lever i fortiden og forteller om hvordan det er å være ung i din tid."},
+                    {"role": "user", "content": prompt}
                 ],
                 max_tokens=3000
             )
 
-            story = response["choices"][0]["message"]["content"]
-            st.markdown("### 🖋️ Historien:")
+            story = response.choices[0].message.content
+            st.markdown("### 📝 Dette fortalte ungdommene:")
             st.markdown(story)
 
-            image_prompt = f"Two teenagers (a boy and a girl) in {location} in the year {year}, realistic historical setting, cinematic lighting"
-            image_response = openai.Image.create(
+            # 🖼️ DALL·E-bilde
+            image_prompt = f"A boy and a girl aged 16–18 in {location} in the year {year}, historical scene, cinematic, emotional, realistic"
+            image_response = client.images.generate(
                 model="dall-e-3",
                 prompt=image_prompt,
                 n=1,
                 size="1024x1024"
             )
-            image_url = image_response['data'][0]['url']
+            image_url = image_response.data[0].url
             image = Image.open(BytesIO(requests.get(image_url).content))
 
-            st.markdown("### 🖼️ Historisk illustrasjon:")
+            st.markdown("### 🖼️ Tidsbilde:")
             st.image(image, caption=f"{location}, {year}")
 
+            # 💾 Lag PDF med bilde
             temp_image_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
             image.save(temp_image_file.name)
 
-            pdf_fil = lag_pdf(f"Historien fra {location}, {year}", story, temp_image_file.name)
+            pdf_fil = lag_pdf(f"Reise til {location} i {year}", story, temp_image_file.name)
 
             with open(pdf_fil, "rb") as f:
                 st.download_button(
-                    label="📄 Last ned som PDF",
+                    label="📄 Last ned historien som PDF (med bilde)",
                     data=f,
-                    file_name=f"historie_{location}_{year}.pdf",
+                    file_name=f"tidsreise_{location}_{year}.pdf",
                     mime="application/pdf"
                 )
