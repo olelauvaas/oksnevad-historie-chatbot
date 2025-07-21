@@ -23,6 +23,7 @@ location = st.text_input("Skriv inn sted/land", placeholder="f.eks. Berlin, Tysk
 boy_name = st.text_input("Navn på gutten (valgfritt)")
 girl_name = st.text_input("Navn på jenta (valgfritt)")
 samfunnslag = st.text_input("Hvilket samfunnslag kommer de fra? (valgfritt)", placeholder="f.eks. arbeiderklasse, adelen, bønder, middelklasse")
+etnisitet = st.text_input("Hva slags etnisitet har ungdommene? (valgfritt)", placeholder="f.eks. tysk, norsk, afrikansk-amerikansk")
 
 # 📄 PDF-funksjon
 def lag_pdf(tittel, tekst, bilde_path=None):
@@ -54,26 +55,14 @@ def lag_pdf(tittel, tekst, bilde_path=None):
     return temp_file.name
 
 # 🎯 Generer bildeprompt basert på dato, sted og samfunnslag
-def generer_bildeprompt(location, date, samfunnslag):
+
+def generer_bildeprompt(location, date, samfunnslag, etnisitet):
     try:
         year = int(date.split(".")[-1])
     except:
         year = 1950
 
-    nasjonalitet = "European"
     stil = "realistic, cinematic lighting, emotional, historically accurate clothing"
-
-    loc_lower = location.lower()
-    if "germany" in loc_lower or "berlin" in loc_lower:
-        nasjonalitet = "German"
-    elif "norway" in loc_lower or "oslo" in loc_lower:
-        nasjonalitet = "Norwegian"
-    elif "france" in loc_lower or "paris" in loc_lower:
-        nasjonalitet = "French"
-    elif "usa" in loc_lower or "america" in loc_lower or "new york" in loc_lower:
-        nasjonalitet = "American"
-    elif "russia" in loc_lower or "moscow" in loc_lower or "soviet" in loc_lower:
-        nasjonalitet = "Russian"
 
     if year < 1920:
         stil += ", sepia tone, Edwardian style"
@@ -87,7 +76,8 @@ def generer_bildeprompt(location, date, samfunnslag):
     if samfunnslag:
         stil += f", visual cues of {samfunnslag} background"
 
-    prompt = f"A {nasjonalitet} teenage couple (boy and girl, 16–18 years old) in love in {location} on {date}, {stil}"
+    etnisitet_prompt = f"{etnisitet} " if etnisitet else ""
+    prompt = f"A {etnisitet_prompt}teenage couple (boy and girl, 16–18 years old) in love in {location} on {date}, {stil}"
     return prompt
 
 # 🚀 Generer historie
@@ -104,6 +94,7 @@ Når eleven fra Øksnevad vgs ankommer som en tidsreisende, møter de to ungdomm
 - {'gutten heter ' + boy_name if boy_name else 'du velger navnet på gutten'}
 - {'jenta heter ' + girl_name if girl_name else 'du velger navnet på jenta'}
 - De kommer fra {'samfunnslaget ' + samfunnslag if samfunnslag else 'et samfunnslag som du velger basert på tid og sted'}
+- {'De har etnisk bakgrunn fra ' + etnisitet if etnisitet else 'Du velger etnisitet basert på sted og tid'}
 
 Ungdommene hilser eleven vennlig og snakker i jeg-form direkte til dem. De deler hvordan livet deres er i dette samfunnet og forteller om hverdag, drømmer, utfordringer og håp.
 Historien skal inneholde refleksjoner om skole, arbeid, familie og samfunnet rundt dem. Hvis historiske hendelser finner sted på denne tiden, må det gjerne nevnes.
@@ -124,7 +115,7 @@ Avslutt med at ungdommene sender en personlig hilsen til eleven og hele Øksneva
             st.markdown("### 📝 Her er historien:")
             st.markdown(story)
 
-            image_prompt = generer_bildeprompt(location, date, samfunnslag)
+            image_prompt = generer_bildeprompt(location, date, samfunnslag, etnisitet)
 
             image_response = openai.images.generate(
                 model="dall-e-3",
