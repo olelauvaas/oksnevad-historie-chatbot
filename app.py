@@ -100,12 +100,13 @@ Ungdommene hilser eleven vennlig og snakker i jeg-form direkte til dem. De deler
 Historien skal inneholde refleksjoner om skole, arbeid, familie og samfunnet rundt dem. Hvis historiske hendelser finner sted på denne tiden, må det gjerne nevnes.
 Stilen skal være realistisk, ungdommelig og tilpasset videregående skole-elever.
 Avslutt med at ungdommene sender en personlig hilsen til eleven og hele Øksnevad videregående skole.
+Legg også til et visdomsord eller en inspirerende livsfilosofi som de gir med på veien – det kan være et sitat, eller noe de selv har funnet på, men det skal være meningsfullt for en elev i dag.
 """
 
             response = openai.chat.completions.create(
                 model="gpt-4o",
                 messages=[
-                    {"role": "system", "content": "Du er en historieforteller. Historien blir fortalt i jeg-form av ungdommene selv som et kjærestepar i det historiske miljøet de lever i. De hilser på eleven som har reist i tid og avslutter med en personlig hilsen til Øksnevad vgs."},
+                    {"role": "system", "content": "Du er en historieforteller. Historien blir fortalt i jeg-form av ungdommene selv som et kjærestepar i det historiske miljøet de lever i. De hilser på eleven som har reist i tid og avslutter med en personlig hilsen og visdomsord til Øksnevad vgs."},
                     {"role": "user", "content": story_prompt}
                 ],
                 max_tokens=3000
