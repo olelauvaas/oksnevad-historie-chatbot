@@ -1,6 +1,6 @@
 import streamlit as st
 import os
-from openai import OpenAI
+import openai
 from PIL import Image
 import requests
 from io import BytesIO
@@ -10,28 +10,29 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.units import cm
 
 # 🔐 OpenAI API-nøkkel fra secrets
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+openai.api_key = st.secrets["OPENAI_API_KEY"]
+os.environ["OPENAI_API_KEY"] = openai.api_key
 
 # 🎨 Streamlit-oppsett
 st.set_page_config(page_title="Historiefortelleren", page_icon="📖")
-st.title("📖 Historiefortelleren – en reise tilbake i tid")
+st.title("📖 Historiefortelleren – reis i tid med AI")
 
 # 🧾 Brukerinput
-year = st.text_input("Skriv inn årstall", placeholder="f.eks. 1917")
-location = st.text_input("Skriv inn sted/land", placeholder="f.eks. Petrograd, Russland")
+date = st.text_input("Skriv inn dato (DD.MM.ÅÅÅÅ)", placeholder="f.eks. 01.05.1945")
+location = st.text_input("Skriv inn sted/land", placeholder="f.eks. Berlin, Tyskland")
+boy_name = st.text_input("Navn på gutten (valgfritt)")
+girl_name = st.text_input("Navn på jenta (valgfritt)")
 
 # 📄 PDF-funksjon
 def lag_pdf(tittel, tekst, bilde_path=None):
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
     c = canvas.Canvas(temp_file.name, pagesize=A4)
 
-    # Tittel
     c.setFont("Helvetica-Bold", 16)
     c.drawString(2 * cm, 28 * cm, tittel)
 
     y = 27 * cm
 
-    # Bilde
     if bilde_path:
         try:
             c.drawImage(bilde_path, 2 * cm, y - 12 * cm, width=12 * cm, height=12 * cm, preserveAspectRatio=True)
@@ -39,9 +40,8 @@ def lag_pdf(tittel, tekst, bilde_path=None):
         except Exception as e:
             print("Kunne ikke legge til bilde i PDF:", e)
 
-    # Tekst
     c.setFont("Helvetica", 12)
-    for linje in tekst.split("\n"):
+    for linje i tekst.split("\n"):
         if y < 2 * cm:
             c.showPage()
             c.setFont("Helvetica", 12)
@@ -52,40 +52,75 @@ def lag_pdf(tittel, tekst, bilde_path=None):
     c.save()
     return temp_file.name
 
+# 🎯 Generer bildeprompt basert på dato og sted
+def generer_bildeprompt(location, date):
+    try:
+        year = int(date.split(".")[-1])
+    except:
+        year = 1950
+
+    nasjonalitet = "European"
+    stil = "realistic, cinematic lighting, emotional, historically accurate clothing"
+
+    loc_lower = location.lower()
+    if "germany" in loc_lower or "berlin" in loc_lower:
+        nasjonalitet = "German"
+    elif "norway" in loc_lower or "oslo" in loc_lower:
+        nasjonalitet = "Norwegian"
+    elif "france" in loc_lower or "paris" in loc_lower:
+        nasjonalitet = "French"
+    elif "usa" in loc_lower or "america" in loc_lower or "new york" in loc_lower:
+        nasjonalitet = "American"
+    elif "russia" in loc_lower or "moscow" in loc_lower or "soviet" in loc_lower:
+        nasjonalitet = "Russian"
+
+    if year < 1920:
+        stil += ", sepia tone, Edwardian style"
+    elif year < 1950:
+        stil += ", 1940s fashion, monochrome photo style"
+    elif year < 1980:
+        stil += ", 1970s clothing, vintage tone"
+    elif year < 2000:
+        stil += ", 1990s youth fashion"
+
+    prompt = f"A {nasjonalitet} teenage couple (boy and girl, 16–18 years old) in love in {location} on {date}, {stil}"
+    return prompt
+
 # 🚀 Generer historie
-if st.button("Start tidsreisen!"):
-    if not year or not location:
-        st.warning("Skriv inn både årstall og sted for å komme i gang.")
+if st.button("Fortell meg en historie"):
+    if not date or not location:
+        st.warning("Skriv inn både dato og sted for å komme i gang.")
     else:
         with st.spinner("Reiser tilbake i tid..."):
 
-            # 🧠 Prompt
-            prompt = f"""
-Forestill deg at eleven har gått inn i en tidsmaskin og havner i {location} i året {year}. Når de kommer frem, møter de en gutt og en jente på 16–18 år.
+            story_prompt = f"""
+Skriv en realistisk og engasjerende historie satt til {location} den {date}.
 
-De to ungdommene forteller hvordan livet deres er som unge i denne tiden og på dette stedet. De snakker om hverdagen, utfordringer, håp og drømmer – og kanskje også om historiske hendelser som påvirker dem.
+Når eleven ankommer som en tidsreisende, møter de to ungdommer (ca. 16–18 år) som er kjærester:
+- {'gutten heter ' + boy_name if boy_name else 'du velger navnet på gutten'}
+- {'jenta heter ' + girl_name if girl_name else 'du velger navnet på jenta'}
 
-Svarene skal være tilpasset dagens ungdom på Øksnevad vgs – altså realistisk, relaterbart og med en ungdommelig fortellerstil. Ikke gjør det for gammeldags. Språket skal være ungdommelig, lett å lese, og gjerne litt personlig og sårbart der det passer.
-
-Fortellingen skal fenge og gi innsikt i historiske forhold – gjennom øynene til ungdom som levde da.
+Ungdommene forteller hvordan livet deres er i dette samfunnet, og deler tanker, drømmer og håp som kjærestepar.
+De reflekterer over skole, arbeid, familie, og samfunnet rundt seg. Hvis historiske hendelser finner sted på denne tiden, må det gjerne nevnes.
+Historien skal passe for ungdom på videregående skole og være troverdig.
 """
 
-            response = client.chat.completions.create(
+            response = openai.chat.completions.create(
                 model="gpt-4o",
                 messages=[
-                    {"role": "system", "content": "Du er en ungdom som lever i fortiden og forteller om hvordan det er å være ung i din tid."},
-                    {"role": "user", "content": prompt}
+                    {"role": "system", "content": "Du er en historieforteller. Historien blir fortalt av ungdommene selv som et kjærestepar i det historiske miljøet de lever i."},
+                    {"role": "user", "content": story_prompt}
                 ],
                 max_tokens=3000
             )
 
             story = response.choices[0].message.content
-            st.markdown("### 📝 Dette fortalte ungdommene:")
+            st.markdown("### 📝 Her er historien:")
             st.markdown(story)
 
-            # 🖼️ DALL·E-bilde
-            image_prompt = f"A boy and a girl aged 16–18 in {location} in the year {year}, historical scene, cinematic, emotional, realistic"
-            image_response = client.images.generate(
+            image_prompt = generer_bildeprompt(location, date)
+
+            image_response = openai.images.generate(
                 model="dall-e-3",
                 prompt=image_prompt,
                 n=1,
@@ -94,19 +129,18 @@ Fortellingen skal fenge og gi innsikt i historiske forhold – gjennom øynene t
             image_url = image_response.data[0].url
             image = Image.open(BytesIO(requests.get(image_url).content))
 
-            st.markdown("### 🖼️ Tidsbilde:")
-            st.image(image, caption=f"{location}, {year}")
+            st.markdown("### 🖼️ Historisk illustrasjon:")
+            st.image(image, caption=f"{location}, {date}")
 
-            # 💾 Lag PDF med bilde
             temp_image_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
             image.save(temp_image_file.name)
 
-            pdf_fil = lag_pdf(f"Reise til {location} i {year}", story, temp_image_file.name)
+            pdf_fil = lag_pdf(f"Historien fra {location} den {date}", story, temp_image_file.name)
 
             with open(pdf_fil, "rb") as f:
                 st.download_button(
                     label="📄 Last ned historien som PDF (med bilde)",
                     data=f,
-                    file_name=f"tidsreise_{location}_{year}.pdf",
+                    file_name=f"historie_{location}_{date}.pdf",
                     mime="application/pdf"
                 )
