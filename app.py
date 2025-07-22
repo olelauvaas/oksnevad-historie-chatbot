@@ -102,7 +102,7 @@ Når dere ankommer, blir dere møtt av en lokal ungdom, som har fått et realist
 - Ha en ungdommelig fortellerstil: direkte, ekte og følelsesnær – **unngå overdreven poesi og lange metaforer**.
 - Personen takker til slutt Sofie og brukeren for besøket.
 
-🗌 Viktige regler:
+🗄 Viktige regler:
 - Sofie snakker ikke – hun er bare med på reisen.
 - Ikke forklar, oppsummer eller si "Her kommer en historie om...". Gå rett inn i fortellingen med personens første replikk.
 - Ikke bruk moderne ord, uttrykk eller konsepter som ikke fantes i perioden (f.eks. plast, strøm, dorullskip).
@@ -156,7 +156,7 @@ if st.session_state.get("historie_generert"):
     st.markdown("""
 ### 📘 Refleksjonsspørsmål
 
-🧾 Refleksjon etter tidsreisen med Sofie
+🗞 Refleksjon etter tidsreisen med Sofie
 
 📍 Ditt valg:
 Navn: ___________________________
@@ -177,11 +177,11 @@ Svar:
 Svar:
 
 🎯 5. Tidskapsel-score
-☐ 1
-☐ 2
-☐ 3
-☐ 4
-☐ 5
+☑ 1
+☑ 2
+☑ 3
+☑ 4
+☑ 5
 
 🧠 Ekstra (valgfritt):
 Sammenlign det livet du møtte med ditt eget.
@@ -195,7 +195,7 @@ Skriv en kort melding til personen du møtte.
         doc.add_page_break()
         doc.add_heading("Refleksjonsspørsmål", level=1)
         reflection_text = """
-🧾 Refleksjon etter tidsreisen med Sofie
+ ෝe Refleksjon etter tidsreisen med Sofie
 
 📍 Ditt valg:
 Navn: ___________________________
@@ -216,11 +216,11 @@ Svar:
 Svar:
 
 🎯 5. Tidskapsel-score
-☐ 1
-☐ 2
-☐ 3
-☐ 4
-☐ 5
+☑ 1
+☑ 2
+☑ 3
+☑ 4
+☑ 5
 
 🧠 Ekstra (valgfritt):
 Sammenlign det livet du møtte med ditt eget.
@@ -236,3 +236,8 @@ Skriv en kort melding til personen du møtte.
                 file_name="sofies_tidsreise.docx",
                 mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             )
+
+    if st.button("🔙 Tilbake til start"):
+        st.session_state.historie_generert = False
+        st.session_state.story_data = {}
+        st.rerun()
