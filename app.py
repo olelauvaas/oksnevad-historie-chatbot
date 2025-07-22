@@ -133,7 +133,7 @@ Historien foregår i {location} den {date}.
         }
 
         st.session_state.historie_generert = True
-        st.rerun()
+        # Ikke bruk rerun her – fortsett direkte
 
 # ⬇️ Viser historien dersom den er generert
 if st.session_state.get("historie_generert"):
@@ -151,7 +151,6 @@ if st.session_state.get("historie_generert"):
         bildeprompt = f"A realistic painting of a {gender_eng} in {st.session_state.story_data['location']} in the year {st.session_state.story_data['date'][-4:]}, historical clothing, natural light, facing forward"
         bilde = generer_bilde(bildeprompt)
         st.session_state.story_data["image"] = bilde
-        st.rerun()
 
     if st.session_state.story_data.get("image"):
         st.image(st.session_state.story_data["image"], caption="Historisk portrett")
