@@ -22,9 +22,15 @@ st.markdown("## Sofies Tidsmaskin")
 # 📦 Session state for historikk
 if "story_data" not in st.session_state:
     st.session_state.story_data = {}
+if "historie_generert" not in st.session_state:
+    st.session_state.historie_generert = False
+if "sporsmal" not in st.session_state:
+    st.session_state.sporsmal = []
+if "image_url" not in st.session_state:
+    st.session_state.image_url = None
 
 # 🧾 Brukerinput
-if "historie_generert" not in st.session_state or not st.session_state.historie_generert:
+if not st.session_state.historie_generert:
     date = st.text_input("Skriv inn dato (DD.MM.ÅÅÅÅ)", placeholder="f.eks. 01.05.1945")
     location = st.text_input("Skriv inn sted/land", placeholder="f.eks. Berlin, Tyskland")
     navn = st.text_input("Skriv inn ditt navn")
@@ -44,33 +50,45 @@ Du er en historiefortellende GPT kalt Sofies tidsmaskin. Brukeren har skrevet in
 Når dere ankommer, blir dere møtt av en lokal ungdom, som har fått et tilfeldig navn. Hun er den som forteller historien. Hun skal:
 
 - Henvende seg direkte til både Sofie og {navn} i åpningsreplikken.
-- Presentere seg med navn, alder, og dersom det ikke allerede er spesifisert i prompten: også etnisitet og hvilket samfunnslag hun tilhører.
+- Presentere seg med navn og alder.
+- Dersom etnisitet og samfunnslag ikke er angitt av brukeren, skal du selv velge og nevne dette tidlig i historien på en naturlig måte.
 - Snakke i jeg-form og fortelle en personlig og levende historie om hvordan det er å leve akkurat her og nå.
 
 📜 Historien skal:
-- Være troverdig for tid og sted, med sanselige detaljer fra hverdagsliv, arbeid, familie, skole, kultur, politikk og økonomi.
+- Være troverdig for tid og sted, med sanselige detaljer fra hverdagsliv, arbeid, familie, skole (kun hvis realistisk for personens klasse og tid), kultur, politikk og økonomi.
+- Ikke bruke moderne ord, begreper eller uttrykk som ikke eksisterte i perioden – som \"dorullskip\", plastleker eller referanser til nåtidige konsepter.
 - Inneholde uventede, spennende eller tankevekkende elementer – noe som vekker undring eller følelser hos Sofie og brukeren.
 - Avsluttes med noen kloke, rørende eller innsiktsfulle ord, som gir leseren noe å tenke på.
 - Personen takker deretter Sofie og brukeren for besøket.
 
 🧭 Viktige regler:
 - Sofie snakker ikke – hun er bare med på reisen.
-- Ikke forklar, oppsummer eller si "Her kommer en historie om...". Gå rett inn i fortellingen med personens første replikk.
-- Dersom etnisitet og samfunnslag ikke er nevnt av brukeren, skal du selv velge og oppgi dette naturlig i introduksjonen.
+- Ikke forklar, oppsummer eller si \"Her kommer en historie om...\". Gå rett inn i fortellingen med personens første replikk.
 - Språket skal være ungdomsnært, sanselig og fortellende – ikke som et leksikon. Det skal føles som å høre noen fortelle rett til deg.
+- Ikke referer til Øksnevad vgs eller andre moderne institusjoner.
 Historien foregår i {location} den {date}.
 """
 
                 response = openai.chat.completions.create(
                     model="gpt-4o",
                     messages=[
-                        {"role": "system", "content": "Du er en historieforteller med ungdommelig og sanselig stil, inspirert av varme og realisme. Du skriver i jeg-form og lar en ungdom fortelle en levende og følelsesnær historie fra sitt liv, basert på tid og sted. Historien starter med personlig hilsen og avsluttes med visdomsord og hilsen til Øksnevad vgs."},
+                        {"role": "system", "content": "Du er en historieforteller med ungdommelig og sanselig stil, inspirert av varme og realisme. Du skriver i jeg-form og lar en ungdom fortelle en levende og følelsesnær historie fra sitt liv, basert på tid og sted. Historien starter med personlig hilsen og avsluttes med visdomsord og hilsen."},
                         {"role": "user", "content": story_prompt}
                     ],
                     max_tokens=3000
                 )
 
                 story = response.choices[0].message.content
+                image_prompt = f"Portrait of a {etnisitet if etnisitet else 'local'} youth from {location} in {date}, with visible historical surroundings, realistic style"
+
+                image_response = openai.images.generate(
+                    model="dall-e-3",
+                    prompt=image_prompt,
+                    n=1,
+                    size="1024x1024"
+                )
+
+                st.session_state.image_url = image_response.data[0].url
                 st.session_state.story_data = {
                     "location": location,
                     "date": date,
@@ -82,99 +100,53 @@ Historien foregår i {location} den {date}.
                 st.session_state.historie_generert = True
                 st.rerun()
 
-# 📄 PDF-funksjon
+# 📖 Vis historie og bilde
+else:
+    st.markdown(f"#### {st.session_state.story_data['date']} – {st.session_state.story_data['location']}")
+    st.text_area("Historien:", st.session_state.story_data['story'], height=400)
 
-def lag_pdf(tittel, tekst, bilde_path=None):
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-    c = canvas.Canvas(temp_file.name, pagesize=A4)
-    c.setFont("Helvetica-Bold", 16)
-    c.drawString(2 * cm, 28 * cm, tittel)
-    y = 27 * cm
-    if bilde_path and os.path.exists(bilde_path):
-        try:
-            c.drawImage(bilde_path, 2 * cm, y - 12 * cm, width=12 * cm, height=12 * cm, preserveAspectRatio=True)
-            y -= 13 * cm
-        except Exception as e:
-            print("Kunne ikke legge til bilde i PDF:", e)
-    c.setFont("Helvetica", 12)
-    for linje in tekst.split("\n"):
-        linje = linje.strip()
-        if not linje:
-            y -= 0.6 * cm
-            continue
-        while linje:
-            if y < 2 * cm:
-                c.showPage()
-                c.setFont("Helvetica", 12)
-                y = 27 * cm
-            cut = linje[:100]
-            c.drawString(2 * cm, y, cut)
-            linje = linje[100:]
-            y -= 0.6 * cm
-    c.save()
-    return temp_file.name
+    if st.session_state.image_url:
+        st.image(st.session_state.image_url, caption="Et glimt fra reisen", use_column_width=True)
 
-# 📸 Bildeprompt
+    nytt_spm = st.text_input("Still et oppfølgingsspørsmål")
+    if st.button("Still spørsmål"):
+        if nytt_spm:
+            follow_up_prompt = f"Bruk samme stil og forteller som forrige historie, og svar på dette oppfølgingsspørsmålet: '{nytt_spm}'"
+            response = openai.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "user", "content": follow_up_prompt}
+                ],
+                max_tokens=1000
+            )
+            st.session_state.sporsmal.append((nytt_spm, response.choices[0].message.content))
+            st.rerun()
 
-def generer_bildeprompt(location, date, samfunnslag, etnisitet):
-    try:
-        year = int(date.split(".")[-1])
-    except:
-        year = 1950
-    stil = "realistic, cinematic lighting, emotionally expressive, historically accurate, background clearly shows environment, character present but not dominating"
-    if year < 1920:
-        stil += ", sepia tone, Edwardian clothing"
-    elif year < 1950:
-        stil += ", 1940s attire, monochrome"
-    elif year < 1980:
-        stil += ", 1970s youth, warm tones"
-    elif year < 2000:
-        stil += ", 1990s teenager, nostalgic mood"
-    if samfunnslag:
-        stil += f", depicting {samfunnslag} background"
-    if etnisitet:
-        stil += f", {etnisitet}"
-    prompt = f"teenager (16–18), in {location} on {date}, {stil}"
-    return prompt
+    for idx, (spm, svar) in enumerate(st.session_state.sporsmal):
+        st.markdown(f"**Spørsmål {idx+1}:** {spm}")
+        st.markdown(f"{svar}")
 
-# 📚 Vis historie
-if st.session_state.get("historie_generert"):
-    data = st.session_state.story_data
-    st.markdown("### Her er historien:")
-    st.markdown(data["story"])
+    if st.button("Last ned som PDF"):
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmpfile:
+            c = canvas.Canvas(tmpfile.name, pagesize=A4)
+            text = c.beginText(2 * cm, 28 * cm)
+            text.setFont("Times-Roman", 12)
+            for linje in st.session_state.story_data['story'].split("\n"):
+                if text.getY() < 2 * cm:
+                    c.drawText(text)
+                    c.showPage()
+                    text = c.beginText(2 * cm, 28 * cm)
+                    text.setFont("Times-Roman", 12)
+                text.textLine(linje)
+            c.drawText(text)
+            c.save()
 
-    # Bilde og PDF
-    if "bilde_url" not in data:
-        with st.spinner("Genererer bilde..."):
-            image_prompt = generer_bildeprompt(data["location"], data["date"], data["samfunnslag"], data["etnisitet"])
-            try:
-                image_response = openai.images.generate(
-                    model="dall-e-3",
-                    prompt=image_prompt,
-                    n=1,
-                    size="1024x1024"
-                )
-                image_url = image_response.data[0].url
-                image = Image.open(BytesIO(requests.get(image_url).content))
-                st.image(image, caption=f"{data['location']}, {data['date']}")
-                temp_image_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-                image.save(temp_image_file.name)
-                data["bilde_url"] = image_url
-                data["bilde_path"] = temp_image_file.name
-            except Exception as e:
-                st.error("Bilde kunne ikke genereres.")
-                data["bilde_url"] = None
-                data["bilde_path"] = None
+            with open(tmpfile.name, "rb") as f:
+                st.download_button("📄 Last ned historien som PDF", f, file_name="sofies_tidsreise.pdf")
 
-    pdf_fil = lag_pdf(f"Historien fra {data['location']} den {data['date']}", data["story"], data.get("bilde_path"))
-    with open(pdf_fil, "rb") as f:
-        st.download_button(
-            label="\U0001F4C4 Last ned historien som PDF (med bilde)",
-            data=f,
-            file_name=f"historie_{data['location']}_{data['date']}.pdf",
-            mime="application/pdf"
-        )
-
-    if st.button("Lag en ny historie"):
+    if st.button("🔁 Lag en ny historie"):
         st.session_state.historie_generert = False
+        st.session_state.story_data = {}
+        st.session_state.sporsmal = []
+        st.session_state.image_url = None
         st.rerun()
