@@ -56,13 +56,13 @@ Når dere ankommer, blir dere møtt av en lokal ungdom, som har fått et tilfeld
 
 📜 Historien skal:
 - Være troverdig for tid og sted, med sanselige detaljer fra hverdagsliv, arbeid, familie, skole (kun hvis realistisk for personens klasse og tid), kultur, politikk og økonomi.
-- Ikke bruke moderne ord, begreper eller uttrykk som ikke eksisterte i perioden – som \"dorullskip\", plastleker eller referanser til nåtidige konsepter.
+- Ikke bruke moderne ord, begreper eller uttrykk som ikke eksisterte i perioden – som "dorullskip", plastleker eller referanser til nåtidige konsepter.
 - Inneholde uventede, spennende eller tankevekkende elementer – noe som vekker undring eller følelser hos Sofie og brukeren.
 - Personen takker deretter Sofie og brukeren for besøket.
 
 🧭 Viktige regler:
 - Sofie snakker ikke – hun er bare med på reisen.
-- Ikke forklar, oppsummer eller si \"Her kommer en historie om...\". Gå rett inn i fortellingen med personens første replikk.
+- Ikke forklar, oppsummer eller si "Her kommer en historie om...". Gå rett inn i fortellingen med personens første replikk.
 - Språket skal være ungdomsnært, sanselig og fortellende – ikke som et leksikon. Det skal føles som å høre noen fortelle rett til deg.
 - Ikke referer til Øksnevad vgs eller andre moderne institusjoner.
 Historien foregår i {location} den {date}.
@@ -78,7 +78,7 @@ Historien foregår i {location} den {date}.
                 )
 
                 story = response.choices[0].message.content
-                image_prompt = f"Portrait of a {etnisitet if etnisitet else 'local'} youth from {location} in {date}, with visible historical surroundings, realistic style"
+                image_prompt = f"Realistic portrait of a young girl named {navn} from {location} in {date}, {etnisitet if etnisitet else 'local'} ethnicity, historical outfit from that era, expressive face, with visible background from {location}, cinematic lighting"
 
                 image_response = openai.images.generate(
                     model="dall-e-3",
