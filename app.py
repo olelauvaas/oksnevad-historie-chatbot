@@ -1,6 +1,5 @@
 import streamlit as st
-import os
-import openai
+from openai import OpenAI
 from PIL import Image
 import requests
 from io import BytesIO
@@ -9,9 +8,8 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import cm
 
-# 🔐 OpenAI API-nøkkel fra secrets
-openai.api_key = st.secrets["OPENAI_API_KEY"]
-os.environ["OPENAI_API_KEY"] = openai.api_key
+# 🔐 OpenAI API-klient
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 # 🎨 Streamlit-oppsett
 st.set_page_config(page_title="Sofies Tidsmaskin")
@@ -73,24 +71,24 @@ Når dere ankommer, blir dere møtt av en lokal ungdom, som har fått et tilfeld
 - Snakke i jeg-form og fortelle en personlig og levende historie om hvordan det er å leve akkurat her og nå.
 
 📜 Historien skal:
-- Være **faglig troverdig** basert på tid og sted (årstall, kultur, klasse, samfunn).
-- Ha **maks 500–600 ord** – kort nok for ungdom og undervisning.
-- Inneholde **én personlig utfordring eller hendelse** som er dramatisk, overraskende eller tankevekkende – men **alltid realistisk** for perioden.
-- Inkludere konkrete beskrivelser av hverdagsliv: arbeid, familie, utdanning (hvis relevant), religion, økonomi, politikk, lokale hendelser og relasjoner.
-- Språket skal være **ungdommelig og sanselig**, men ikke overdrevent poetisk.
-- **Ingen moderne konsepter eller teknologi** må nevnes – og **ikke fantasy, magi eller overnaturlige elementer**.
-- Avsluttes med noen reflektive eller inspirerende ord, og en personlig takk til Sofie og brukeren for besøket.
+- Være **kort og konsis** (maks 500–600 ord), og egnet for ungdom i alderen 16–18 år.
+- Inneholde en **drivende konflikt eller dramatisk hendelse** – noe som overrasker eller utfordrer hovedpersonen.
+- Ha en tydelig **"wow-faktor"** – noe som gjør at leseren tenker: *"Hæ?! Skjedde DET?!"*
+- Inneholde **realistiske og sanselige detaljer** fra tid og sted: arbeid, skole (bare hvis realistisk), familie, samfunn, kultur, politikk.
+- Ha en ungdommelig fortellerstil: direkte, ekte og følelsesnær – **unngå overdreven poesi og lange metaforer**.
+- Avsluttes med noen kloke, rørende eller inspirerende ord – som gir eleven noe å tenke på.
+- Personen takker til slutt Sofie og brukeren for besøket.
 
 🧭 Viktige regler:
 - Sofie snakker ikke – hun er bare med på reisen.
-- Ikke skriv “Her kommer en historie om…” – gå rett inn i handlingen med personens replikk.
-- Ikke bruk moderne uttrykk, teknologi eller referanser etter tidsepoken.
-- Ikke nevne GPT, datamaskiner, kunstig intelligens, eller skoler som Øksnevad vgs.
+- Ikke forklar, oppsummer eller si "Her kommer en historie om...". Gå rett inn i fortellingen med personens første replikk.
+- Ikke bruk moderne ord, uttrykk eller konsepter som ikke fantes i perioden (f.eks. plast, strøm, dorullskip).
+- Ikke referer til Øksnevad vgs eller andre moderne institusjoner.
 Historien foregår i {location} den {date}.
 """
 
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
+        response = client.chat.completions.create(
+            model="gpt-4o",
             messages=[
                 {"role": "system", "content": story_prompt},
                 {"role": "user", "content": "Fortell historien."}
@@ -107,12 +105,13 @@ Historien foregår i {location} den {date}.
 
         # 🔍 Generer bilde
         dalle_prompt = f"Portrait of a teenage girl from {extra_details if extra_details else 'local community'} in {location} in the year {date[-4:]}, realistic style, detailed, standing in historical setting"
-        dalle_response = openai.Image.create(
+        dalle_response = client.images.generate(
             prompt=dalle_prompt,
-            n=1,
-            size="1024x1024"
+            model="dall-e-3",
+            size="1024x1024",
+            n=1
         )
-        image_url = dalle_response['data'][0]['url']
+        image_url = dalle_response.data[0].url
         image_response = requests.get(image_url)
         image = Image.open(BytesIO(image_response.content))
 
