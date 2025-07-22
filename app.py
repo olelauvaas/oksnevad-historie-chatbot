@@ -126,7 +126,7 @@ Historien foregår i {location} den {date}.
             "location": location,
             "extra_details": extra_details,
             "gender": gender,
-            "image": None  # midlertidig tom
+            "image": None
         }
 
         st.session_state.historie_generert = True
@@ -134,12 +134,15 @@ Historien foregår i {location} den {date}.
 
 # ⬇️ Viser historien dersom den er generert
 if st.session_state.get("historie_generert"):
+    if st.button("🔄 Start på nytt"):
+        st.session_state.historie_generert = False
+        st.session_state.story_data = {}
+        st.rerun()
+
     st.markdown("---")
     st.markdown("### ✨ Historien fra fortiden")
-
     st.write(st.session_state.story_data["story"])
 
-    # 🔄 Generer bilde etterpå
     if st.session_state.story_data.get("image") is None:
         bildeprompt = f"A realistic painting of a {st.session_state.story_data['gender'].lower()} teenager in {st.session_state.story_data['location']} in the year {st.session_state.story_data['date'][-4:]}, historical clothing, natural light, facing forward"
         bilde = generer_bilde(bildeprompt)
@@ -156,47 +159,34 @@ if st.session_state.get("historie_generert"):
 
 📍 Ditt valg:
 Navn: ___________________________
-
 Dato du besøkte: ___________________
-
 Sted og land: ______________________
-
 Navnet på personen du møtte: ___________________
 
 🔎 1. Hva lærte du?
-Skriv kort om hva du lærte om samfunnet på den tiden.
-
-✍️ For eksempel: Hvordan var livet for folk flest? Hvordan var skolen, arbeidet, familien eller politikken?
 Svar:
 
 ⚡ 2. Hva overrasket deg mest?
-✍️ Var det noe personen sa, opplevde eller drømte om som du ikke forventet?
 Svar:
 
 💬 3. Hva ville du spurt personen om, hvis du fikk stille ett spørsmål?
 Svar:
 
 💡 4. Hva kan vi lære av denne tiden i dag?
-✍️ Er det noe vi i dag kan forstå bedre ved å se på livet den gang?
 Svar:
 
 🎯 5. Tidskapsel-score
-Hvor ekte og engasjerende føltes historien?
-Kryss av én:
-
-☐ 1 – Virket ikke ekte i det hele tatt
-☐ 2 – Litt kunstig og lite spennende
-☐ 3 – OK, men ikke så engasjerende
-☐ 4 – Ganske ekte og interessant
-☐ 5 – Føltes som om jeg faktisk møtte noen fra den tiden
+☐ 1
+☐ 2
+☐ 3
+☐ 4
+☐ 5
 
 🧠 Ekstra (valgfritt):
 Sammenlign det livet du møtte med ditt eget.
-
-Skriv en kort melding til personen du møtte, som om du kunne sende dem et brev.
+Skriv en kort melding til personen du møtte.
 """)
 
-    # 📥 Last ned som Word
     if st.button("Last ned som Word-dokument"):
         doc = Document()
         doc.add_heading("Historien fra fortiden", 0)
