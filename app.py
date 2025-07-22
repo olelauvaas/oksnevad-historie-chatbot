@@ -16,11 +16,8 @@ os.environ["OPENAI_API_KEY"] = openai.api_key
 # 🎨 Streamlit-oppsett
 st.set_page_config(page_title="Sofies Tidsmaskin")
 logo_path = "logo.PNG"
-col1, col2 = st.columns([1, 4])
-with col1:
-    st.image(logo_path, width=100)
-with col2:
-    st.title("Sofies Tidsmaskin")
+st.image(logo_path, width=300)
+st.markdown("## Sofies Tidsmaskin")
 
 # 📦 Session state for historikk
 if "story_data" not in st.session_state:
@@ -40,31 +37,31 @@ if "historie_generert" not in st.session_state or not st.session_state.historie_
         else:
             with st.spinner("Reiser tilbake i tid..."):
                 story_prompt = f"""
-Lag en historisk, sanselig og ungdommelig fortelling inspirert av Victoria Hislops varme stil og Malin Persson Giolitos realisme. 
-Tonen skal være nært, levende og lett å identifisere seg med for elever i videregående skole.
+Du er en historiefortellende GPT kalt Sofies tidsmaskin. Brukeren har skrevet inn sitt navn, en dato, et årstall, et sted og et land. Du skal nå ta med brukeren og Sofie (en fiktiv kvinnelig tidsreisepartner) tilbake i tid til dette stedet og tidspunktet.
 
-Historien foregår i {location} den {date}. Eleven {navn} fra Øksnevad vgs ankommer som tidsreisende.
+Når dere ankommer, blir dere møtt av en lokal ungdom, som har fått et tilfeldig navn. Hun eller han skal:
 
-De møter én ungdom mellom 16–18 år, som forteller historien i jeg-form. Historien skal starte med at de hilser på {navn}.
+- Henvende seg direkte til både Sofie og {navn} i åpningsreplikken.
+- Presentere seg med navn, alder, og dersom det ikke allerede er spesifisert i prompten: også etnisitet og hvilket samfunnslag hun/han tilhører.
+- Snakke i jeg-form og fortelle en personlig og levende historie om hvordan det er å leve akkurat her og nå.
 
-Denne ungdommen:
-- Forteller hvem de er (inkl. navn, kjønn, samfunnslag og etnisitet – bruk kreativitet hvis noe mangler)
-- Beskriver hverdagen sin, drømmer, utfordringer og samfunnet rundt seg
-- Refererer gjerne til historiske hendelser hvis relevant
-- Har dialog og sanselige beskrivelser (lukt, syn, lyd, følelse)
+Historien foregår i {location} den {date}. 
 
-Stilen skal være engasjerende og ungdommelig, men også realistisk og emosjonell. Bruk gjerne humor, håp, og ettertanke.
+📜 Historien skal:
+- Være troverdig for tid og sted, med sanselige detaljer fra hverdagsliv, arbeid, familie, skole, kultur, politikk og økonomi.
+- Inneholde uventede, spennende eller tankevekkende elementer.
+- Avsluttes med en varm og personlig hilsen til {navn} og hele Øksnevad videregående skole.
+- Inkludere et visdomsord eller livsfilosofi – enten selvlaget eller et kjent sitat.
 
-Historien skal avsluttes med:
-1. En varm og personlig hilsen til {navn} og hele Øksnevad videregående skole
-2. Et visdomsord eller livsfilosofi – enten selvlaget eller et kjent sitat
-3. Ingen oppfølgingsspørsmål – dette er siste møte
+Sofie sier aldri noe – hun er bare med.
+Ikke forklar, oppsummer eller si \"Her kommer en historie om...\" Gå rett inn i fortellingen med personens første replikk.
+Språket skal være ungdomsnært, sanselig og fortellende – ikke som et leksikon.
 """
 
                 response = openai.chat.completions.create(
                     model="gpt-4o",
                     messages=[
-                        {"role": "system", "content": "Du er en historieforteller med en varm og ungdommelig tone inspirert av Victoria Hislop og Malin Persson Giolito. Du skriver i jeg-form, nær og sanselig, og formidler historier fra historiske tidsepoker til dagens elever i videregående skole. Historien avsluttes med en personlig hilsen og visdomsord."},
+                        {"role": "system", "content": "Du er en historieforteller med ungdommelig og sanselig stil, inspirert av varme og realisme. Du skriver i jeg-form og lar en ungdom fortelle en levende og følelsesnær historie fra sitt liv, basert på tid og sted. Historien starter med personlig hilsen og avsluttes med visdomsord og hilsen til Øksnevad vgs."},
                         {"role": "user", "content": story_prompt}
                     ],
                     max_tokens=3000
@@ -120,19 +117,19 @@ def generer_bildeprompt(location, date, samfunnslag, etnisitet):
         year = int(date.split(".")[-1])
     except:
         year = 1950
-    stil = "realistic, cinematic lighting, emotional, historically accurate clothing, detailed environment background"
+    stil = "realistic, cinematic lighting, emotionally expressive, historically accurate, background shows environment clearly, character is present but not dominating"
     if year < 1920:
-        stil += ", sepia tone, Edwardian style"
+        stil += ", sepia tone, Edwardian clothing"
     elif year < 1950:
-        stil += ", 1940s fashion, monochrome photo style"
+        stil += ", 1940s attire, monochrome"
     elif year < 1980:
-        stil += ", 1970s clothing, vintage tone"
+        stil += ", 1970s youth, warm tones"
     elif year < 2000:
-        stil += ", 1990s youth fashion"
+        stil += ", 1990s teenager, nostalgic mood"
     if samfunnslag:
-        stil += f", visual cues of {samfunnslag} background"
+        stil += f", signs of {samfunnslag} background"
     etnisitet_prompt = f"{etnisitet} " if etnisitet else ""
-    prompt = f"A {etnisitet_prompt}teenager (16–18 years old) in {location} on {date}, {stil}"
+    prompt = f"{etnisitet_prompt}teenager (16–18), in {location} on {date}, {stil}"
     return prompt
 
 # 📚 Vis historie
