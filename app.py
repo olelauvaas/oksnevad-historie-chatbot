@@ -119,9 +119,6 @@ Historien foregår i {location} den {date}.
 
         story = response.choices[0].message.content
 
-        bildeprompt = f"A realistic painting of a {gender.lower()} teenager in {location} in the year {date[-4:]}, historical clothing, natural light, facing forward"
-        bilde = generer_bilde(bildeprompt)
-
         st.session_state.story_data = {
             "story": story,
             "navn": navn,
@@ -129,7 +126,7 @@ Historien foregår i {location} den {date}.
             "location": location,
             "extra_details": extra_details,
             "gender": gender,
-            "image": bilde
+            "image": None  # midlertidig tom
         }
 
         st.session_state.historie_generert = True
@@ -140,10 +137,17 @@ if st.session_state.get("historie_generert"):
     st.markdown("---")
     st.markdown("### ✨ Historien fra fortiden")
 
+    st.write(st.session_state.story_data["story"])
+
+    # 🔄 Generer bilde etterpå
+    if st.session_state.story_data.get("image") is None:
+        bildeprompt = f"A realistic painting of a {st.session_state.story_data['gender'].lower()} teenager in {st.session_state.story_data['location']} in the year {st.session_state.story_data['date'][-4:]}, historical clothing, natural light, facing forward"
+        bilde = generer_bilde(bildeprompt)
+        st.session_state.story_data["image"] = bilde
+        st.rerun()
+
     if st.session_state.story_data.get("image"):
         st.image(st.session_state.story_data["image"], caption="Historisk portrett")
-
-    st.write(st.session_state.story_data["story"])
 
     st.markdown("""
 ### 📘 Refleksjonsspørsmål
