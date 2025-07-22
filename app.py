@@ -14,8 +14,13 @@ openai.api_key = st.secrets["OPENAI_API_KEY"]
 os.environ["OPENAI_API_KEY"] = openai.api_key
 
 # 🎨 Streamlit-oppsett
-st.set_page_config(page_title="Historiefortelleren", page_icon="\U0001F4D6")
-st.title("\U0001F4D6 Historiefortelleren – reis i tid med AI")
+st.set_page_config(page_title="Sofies Tidsmaskin")
+logo_path = "logo.PNG"
+col1, col2 = st.columns([1, 4])
+with col1:
+    st.image(logo_path, width=100)
+with col2:
+    st.title("Sofies Tidsmaskin")
 
 # 📦 Session state for historikk
 if "story_data" not in st.session_state:
@@ -40,9 +45,10 @@ Tonen skal være nært, levende og lett å identifisere seg med for elever i vid
 
 Historien foregår i {location} den {date}. Eleven {navn} fra Øksnevad vgs ankommer som tidsreisende.
 
-De møter én ungdom mellom 16–18 år, som forteller historien i jeg-form. Denne ungdommen:
-- Er i et forhold med en annen ungdom på samme alder
-- Forteller hvem de er (inkl. kjønn, navn, samfunnslag og etnisitet)
+De møter én ungdom mellom 16–18 år, som forteller historien i jeg-form. Historien skal starte med at de hilser på {navn}.
+
+Denne ungdommen:
+- Forteller hvem de er (inkl. navn, kjønn, samfunnslag og etnisitet – bruk kreativitet hvis noe mangler)
 - Beskriver hverdagen sin, drømmer, utfordringer og samfunnet rundt seg
 - Refererer gjerne til historiske hendelser hvis relevant
 - Har dialog og sanselige beskrivelser (lukt, syn, lyd, følelse)
@@ -114,7 +120,7 @@ def generer_bildeprompt(location, date, samfunnslag, etnisitet):
         year = int(date.split(".")[-1])
     except:
         year = 1950
-    stil = "realistic, cinematic lighting, emotional, historically accurate clothing"
+    stil = "realistic, cinematic lighting, emotional, historically accurate clothing, detailed environment background"
     if year < 1920:
         stil += ", sepia tone, Edwardian style"
     elif year < 1950:
@@ -126,13 +132,13 @@ def generer_bildeprompt(location, date, samfunnslag, etnisitet):
     if samfunnslag:
         stil += f", visual cues of {samfunnslag} background"
     etnisitet_prompt = f"{etnisitet} " if etnisitet else ""
-    prompt = f"A {etnisitet_prompt}teenage couple (boy and girl, 16–18 years old) in love in {location} on {date}, {stil}"
+    prompt = f"A {etnisitet_prompt}teenager (16–18 years old) in {location} on {date}, {stil}"
     return prompt
 
 # 📚 Vis historie
 if st.session_state.get("historie_generert"):
     data = st.session_state.story_data
-    st.markdown("### \U0001F4DD Her er historien:")
+    st.markdown("### Her er historien:")
     st.markdown(data["story"])
 
     # Bilde og PDF
@@ -166,3 +172,7 @@ if st.session_state.get("historie_generert"):
             file_name=f"historie_{data['location']}_{data['date']}.pdf",
             mime="application/pdf"
         )
+
+    if st.button("Lag en ny historie"):
+        st.session_state.historie_generert = False
+        st.rerun()
