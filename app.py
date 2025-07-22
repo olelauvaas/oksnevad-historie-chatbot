@@ -17,7 +17,7 @@ os.environ["OPENAI_API_KEY"] = openai.api_key
 st.set_page_config(page_title="Historiefortelleren", page_icon="\U0001F4D6")
 st.title("\U0001F4D6 Historiefortelleren – reis i tid med AI")
 
-# 📦 Session state for historikk og spørsmål
+# 📦 Session state for historikk
 if "story_data" not in st.session_state:
     st.session_state.story_data = {}
 
@@ -25,37 +25,40 @@ if "story_data" not in st.session_state:
 if "historie_generert" not in st.session_state or not st.session_state.historie_generert:
     date = st.text_input("Skriv inn dato (DD.MM.ÅÅÅÅ)", placeholder="f.eks. 01.05.1945")
     location = st.text_input("Skriv inn sted/land", placeholder="f.eks. Berlin, Tyskland")
-    boy_name = st.text_input("Navn på gutten (valgfritt)")
-    girl_name = st.text_input("Navn på jenta (valgfritt)")
+    navn = st.text_input("Skriv inn ditt navn")
     samfunnslag = st.text_input("Hvilket samfunnslag kommer de fra? (valgfritt)", placeholder="f.eks. arbeiderklasse, adelen, bønder, middelklasse")
     etnisitet = st.text_input("Hva slags etnisitet har ungdommene? (valgfritt)", placeholder="f.eks. tysk, norsk, afrikansk-amerikansk")
 
     if st.button("Fortell meg en historie"):
-        if not date or not location:
-            st.warning("Skriv inn både dato og sted for å komme i gang.")
+        if not date or not location or not navn:
+            st.warning("Skriv inn både dato, sted og navn for å komme i gang.")
         else:
             with st.spinner("Reiser tilbake i tid..."):
                 story_prompt = f"""
-Skriv en realistisk og engasjerende historie satt til {location} den {date}.
+Lag en historisk, sanselig og ungdommelig fortelling inspirert av Victoria Hislops varme stil og Malin Persson Giolitos realisme. 
+Tonen skal være nært, levende og lett å identifisere seg med for elever i videregående skole.
 
-Når eleven fra Øksnevad vgs ankommer som en tidsreisende, møter de to ungdommer (ca. 16–18 år) som er kjærester:
-- {'gutten heter ' + boy_name if boy_name else 'du velger navnet på gutten'}
-- {'jenta heter ' + girl_name if girl_name else 'du velger navnet på jenta'}
-- De kommer fra {'samfunnslaget ' + samfunnslag if samfunnslag else 'et samfunnslag som du velger basert på tid og sted'}
-- {'De har etnisk bakgrunn fra ' + etnisitet if etnisitet else 'Du velger etnisitet basert på sted og tid'}
+Historien foregår i {location} den {date}. Eleven {navn} fra Øksnevad vgs ankommer som tidsreisende.
 
-Ungdommene hilser eleven vennlig og snakker i jeg-form direkte til dem. De deler hvordan livet deres er i dette samfunnet og forteller om hverdag, drømmer, utfordringer og håp.
-Historien skal inneholde refleksjoner om skole, arbeid, familie og samfunnet rundt dem. Hvis historiske hendelser finner sted på denne tiden, må det gjerne nevnes.
-Stilen skal være realistisk, ungdommelig og tilpasset videregående skole-elever.
-Avslutt med at ungdommene sender en personlig hilsen til eleven og hele Øksnevad videregående skole.
-Legg også til et visdomsord eller en inspirerende livsfilosofi som de gir med på veien – det kan være et sitat, eller noe de selv har funnet på, men det skal være meningsfullt for en elev i dag.
-Til slutt spør de om eleven har noen spørsmål de lurer på om deres tid.
+De møter én ungdom mellom 16–18 år, som forteller historien i jeg-form. Denne ungdommen:
+- Er i et forhold med en annen ungdom på samme alder
+- Forteller hvem de er (inkl. kjønn, navn, samfunnslag og etnisitet)
+- Beskriver hverdagen sin, drømmer, utfordringer og samfunnet rundt seg
+- Refererer gjerne til historiske hendelser hvis relevant
+- Har dialog og sanselige beskrivelser (lukt, syn, lyd, følelse)
+
+Stilen skal være engasjerende og ungdommelig, men også realistisk og emosjonell. Bruk gjerne humor, håp, og ettertanke.
+
+Historien skal avsluttes med:
+1. En varm og personlig hilsen til {navn} og hele Øksnevad videregående skole
+2. Et visdomsord eller livsfilosofi – enten selvlaget eller et kjent sitat
+3. Ingen oppfølgingsspørsmål – dette er siste møte
 """
 
                 response = openai.chat.completions.create(
                     model="gpt-4o",
                     messages=[
-                        {"role": "system", "content": "Du er en historieforteller. Historien blir fortalt i jeg-form av ungdommene selv som et kjærestepar i det historiske miljøet de lever i. De hilser på eleven som har reist i tid og avslutter med en personlig hilsen og visdomsord til Øksnevad vgs. Til slutt spør de eleven om det er noe de lurer på om deres tid."},
+                        {"role": "system", "content": "Du er en historieforteller med en varm og ungdommelig tone inspirert av Victoria Hislop og Malin Persson Giolito. Du skriver i jeg-form, nær og sanselig, og formidler historier fra historiske tidsepoker til dagens elever i videregående skole. Historien avsluttes med en personlig hilsen og visdomsord."},
                         {"role": "user", "content": story_prompt}
                     ],
                     max_tokens=3000
@@ -66,7 +69,6 @@ Til slutt spør de om eleven har noen spørsmål de lurer på om deres tid.
                     "location": location,
                     "date": date,
                     "story": story,
-                    "followups": [],
                     "samfunnslag": samfunnslag,
                     "etnisitet": etnisitet
                 }
@@ -127,30 +129,11 @@ def generer_bildeprompt(location, date, samfunnslag, etnisitet):
     prompt = f"A {etnisitet_prompt}teenage couple (boy and girl, 16–18 years old) in love in {location} on {date}, {stil}"
     return prompt
 
-# 📚 Vis historie og spørsmål
+# 📚 Vis historie
 if st.session_state.get("historie_generert"):
     data = st.session_state.story_data
     st.markdown("### \U0001F4DD Her er historien:")
     st.markdown(data["story"])
-
-    followup = st.text_input("Skriv et oppfølgingsspørsmål eller la stå tomt for å avslutte:", key="nytt_spm")
-    if followup:
-        if st.button("Still oppfølgingsspørsmål"):
-            with st.spinner("De svarer..."):
-                response = openai.chat.completions.create(
-                    model="gpt-4o",
-                    messages=[
-                        {"role": "system", "content": "Du svarer som ungdommene som akkurat har snakket med eleven fra Øksnevad. Svaret skal være i jeg-form og ungdommelig stil."},
-                        {"role": "user", "content": f"Eleven spør: {followup}"}
-                    ]
-                )
-                svar = response.choices[0].message.content
-                data["followups"].append((followup, svar))
-                st.rerun()
-
-    for i, (spm, svar) in enumerate(data["followups"], start=1):
-        st.markdown(f"### ❓ Spørsmål {i}:\n**{spm}**")
-        st.markdown(f"### 💬 Svar:\n{svar}")
 
     # Bilde og PDF
     if "bilde_url" not in data:
@@ -175,8 +158,7 @@ if st.session_state.get("historie_generert"):
                 data["bilde_url"] = None
                 data["bilde_path"] = None
 
-    full_story = data["story"] + "\n\n" + "\n".join([f"Spørsmål {i}: {q}\nSvar: {a}" for i, (q, a) in enumerate(data["followups"], start=1)])
-    pdf_fil = lag_pdf(f"Historien fra {data['location']} den {data['date']}", full_story, data.get("bilde_path"))
+    pdf_fil = lag_pdf(f"Historien fra {data['location']} den {data['date']}", data["story"], data.get("bilde_path"))
     with open(pdf_fil, "rb") as f:
         st.download_button(
             label="\U0001F4C4 Last ned historien som PDF (med bilde)",
