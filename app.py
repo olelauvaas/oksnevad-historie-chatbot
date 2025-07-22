@@ -8,6 +8,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import cm
 from docx import Document
+import random
 
 # 🔐 OpenAI API-klient
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
@@ -50,6 +51,24 @@ Etterpå skal du tenke over:
 if "story_data" not in st.session_state:
     st.session_state.story_data = {}
 
+# 📸 Bildegenerering
+
+def generer_bilde(prompt):
+    try:
+        image_response = client.images.generate(
+            model="dall-e-3",
+            prompt=prompt,
+            size="1024x1024",
+            quality="standard",
+            n=1
+        )
+        image_url = image_response.data[0].url
+        image = Image.open(BytesIO(requests.get(image_url).content))
+        return image
+    except Exception as e:
+        st.error("Kunne ikke generere bilde: " + str(e))
+        return None
+
 # 🧾 Brukerinput
 if "historie_generert" not in st.session_state or not st.session_state.historie_generert:
     navn = st.text_input("Hva heter du?", placeholder="f.eks. Sofie")
@@ -70,6 +89,7 @@ Når dere ankommer, blir dere møtt av en lokal ungdom, som har fått et realist
 
 - Henvende seg direkte til både Sofie og {navn} i åpningsreplikken.
 - Presentere seg med navn og alder – velg et navn som er realistisk for tid, sted og kjønn.
+- Bruk alltid det kjønnet som brukeren har valgt: {gender.lower()}. Hvis brukeren har valgt "tilfeldig", velger du selv.
 - Dersom etnisitet og samfunnslag ikke er angitt av brukeren, skal du selv velge og nevne dette tidlig i historien på en naturlig måte.
 - Snakke i jeg-form og fortelle en personlig og levende historie om hvordan det er å leve akkurat her og nå.
 
@@ -81,7 +101,7 @@ Når dere ankommer, blir dere møtt av en lokal ungdom, som har fått et realist
 - Ha en ungdommelig fortellerstil: direkte, ekte og følelsesnær – **unngå overdreven poesi og lange metaforer**.
 - Personen takker til slutt Sofie og brukeren for besøket.
 
-🧭 Viktige regler:
+🗌 Viktige regler:
 - Sofie snakker ikke – hun er bare med på reisen.
 - Ikke forklar, oppsummer eller si "Her kommer en historie om...". Gå rett inn i fortellingen med personens første replikk.
 - Ikke bruk moderne ord, uttrykk eller konsepter som ikke fantes i perioden (f.eks. plast, strøm, dorullskip).
@@ -98,57 +118,38 @@ Historien foregår i {location} den {date}.
         )
 
         story = response.choices[0].message.content
+
+        bildeprompt = f"A realistic painting of a {gender.lower()} teenager in {location} in the year {date[-4:]}, historical clothing, natural light, facing forward"
+        bilde = generer_bilde(bildeprompt)
+
         st.session_state.story_data = {
             "story": story,
             "navn": navn,
             "date": date,
             "location": location,
             "extra_details": extra_details,
-            "gender": gender
+            "gender": gender,
+            "image": bilde
         }
 
         st.session_state.historie_generert = True
         st.rerun()
 
-# 📝 Vis historien
-else:
+# ⬇️ Viser historien dersom den er generert
+if st.session_state.get("historie_generert"):
     st.markdown("---")
-    st.markdown(f"### 📖 Historien din: {st.session_state.story_data['location']} {st.session_state.story_data['date']}")
-    st.markdown(st.session_state.story_data["story"])
+    st.markdown("### ✨ Historien fra fortiden")
 
-    # 🔍 Hent navn fra første linje i historien (ekstra forbedring for bildeprompt)
-    historietekst = st.session_state.story_data["story"]
-    første_linje = historietekst.split("\n")[0]
-    forteller_navn = første_linje.split(" ")[3] if len(første_linje.split(" ")) > 3 else "the person"
-    forteller_kjønn = st.session_state.story_data["gender"]
+    if st.session_state.story_data.get("image"):
+        st.image(st.session_state.story_data["image"], caption="Historisk portrett")
 
-    # 🎨 Presis bildeprompt
-    if forteller_kjønn == "Jente":
-        gender_term = "girl"
-    elif forteller_kjønn == "Gutt":
-        gender_term = "boy"
-    else:
-        gender_term = "teenager"
+    st.write(st.session_state.story_data["story"])
 
-    year = st.session_state.story_data['date'][-4:]
-    location = st.session_state.story_data['location']
-    dalle_prompt = f"Realistic portrait of a {gender_term} named {forteller_navn}, from {location} in {year}, wearing authentic historical clothing, standing in a historical street, highly detailed, realistic style"
+    st.markdown("""
+### 📘 Refleksjonsspørsmål
 
-    dalle_response = client.images.generate(
-        prompt=dalle_prompt,
-        model="dall-e-3",
-        size="1024x1024",
-        n=1
-    )
-    image_url = dalle_response.data[0].url
-    image_response = requests.get(image_url)
-    image = Image.open(BytesIO(image_response.content))
+🧾 Refleksjon etter tidsreisen med Sofie
 
-    st.image(image, caption="Din tidsreisevenn", use_container_width=True)
-
-    st.markdown("---")
-    reflection_text = """
-### 🧾 Refleksjon etter tidsreisen med Sofie
 📍 Ditt valg:
 Navn: ___________________________
 
@@ -179,43 +180,64 @@ Svar:
 Hvor ekte og engasjerende føltes historien?
 Kryss av én:
 
-☐ 1 – Virket ikke ekte i det hele tatt  
-☐ 2 – Litt kunstig og lite spennende  
-☐ 3 – OK, men ikke så engasjerende  
-☐ 4 – Ganske ekte og interessant  
+☐ 1 – Virket ikke ekte i det hele tatt
+☐ 2 – Litt kunstig og lite spennende
+☐ 3 – OK, men ikke så engasjerende
+☐ 4 – Ganske ekte og interessant
 ☐ 5 – Føltes som om jeg faktisk møtte noen fra den tiden
 
-🧠 Ekstra (valgfritt):  
-Sammenlign det livet du møtte med ditt eget.  
+🧠 Ekstra (valgfritt):
+Sammenlign det livet du møtte med ditt eget.
 
 Skriv en kort melding til personen du møtte, som om du kunne sende dem et brev.
-"""
-    st.markdown(reflection_text)
+""")
 
-    # 📄 Last ned refleksjonsark som Word
-    if st.button("📥 Last ned refleksjonsark som Word"):
+    # 📥 Last ned som Word
+    if st.button("Last ned som Word-dokument"):
         doc = Document()
+        doc.add_heading("Historien fra fortiden", 0)
+        doc.add_paragraph(st.session_state.story_data["story"])
+        doc.add_page_break()
+        doc.add_heading("Refleksjonsspørsmål", level=1)
+        reflection_text = """
+🧾 Refleksjon etter tidsreisen med Sofie
+
+📍 Ditt valg:
+Navn: ___________________________
+Dato du besøkte: ___________________
+Sted og land: ______________________
+Navnet på personen du møtte: ___________________
+
+🔎 1. Hva lærte du?
+Svar:
+
+⚡ 2. Hva overrasket deg mest?
+Svar:
+
+💬 3. Hva ville du spurt personen om?
+Svar:
+
+💡 4. Hva kan vi lære av denne tiden i dag?
+Svar:
+
+🎯 5. Tidskapsel-score
+☐ 1
+☐ 2
+☐ 3
+☐ 4
+☐ 5
+
+🧠 Ekstra (valgfritt):
+Sammenlign det livet du møtte med ditt eget.
+Skriv en kort melding til personen du møtte.
+"""
         doc.add_paragraph(reflection_text)
         with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp:
             doc.save(tmp.name)
-            with open(tmp.name, "rb") as f:
-                st.download_button("📄 Klikk her for å laste ned refleksjonsarket som Word", f, file_name="refleksjon_sofies_tidsreise.docx")
-
-    # 📄 Lag PDF av historien
-    if st.button("📥 Last ned historien som PDF"):
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-            c = canvas.Canvas(tmp.name, pagesize=A4)
-            textobject = c.beginText(2 * cm, 27.7 * cm)
-            textobject.setFont("Helvetica", 12)
-            for line in st.session_state.story_data["story"].split("\n"):
-                textobject.textLine(line)
-            c.drawText(textobject)
-            c.save()
-
-            with open(tmp.name, "rb") as f:
-                st.download_button("📩 Klikk her for å laste ned historien som PDF", f, file_name="sofies_tidsreise.pdf")
-
-    if st.button("⏮️ Start på nytt"):
-        st.session_state.historie_generert = False
-        st.session_state.story_data = {}
-        st.rerun()
+            tmp.seek(0)
+            st.download_button(
+                label="📄 Last ned Word-dokument",
+                data=tmp.read(),
+                file_name="sofies_tidsreise.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            )
