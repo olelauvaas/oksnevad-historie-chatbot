@@ -89,8 +89,10 @@ Når dere ankommer, blir dere møtt av en lokal ungdom, som har fått et realist
 
 - Henvende seg direkte til både Sofie og {navn} i åpningsreplikken.
 - Presentere seg med navn og alder – velg et navn som er realistisk for tid, sted og kjønn.
-- Bruk alltid det kjønnet som brukeren har valgt: {gender.lower()}. Hvis brukeren har valgt jente, må navnet være et vanlig jentenavn for {location} i året {date[-4:]}. Hvis brukeren har valgt gutt, må navnet være et vanlig guttenavn for det stedet og tiden.
-- Sjekk at navnet ikke brukes for motsatt kjønn.
+- Du *må* bruke det kjønnet som brukeren har valgt: {gender.lower()}.
+- Velg et *realistisk og tydelig kjønnet navn* som var vanlig for {gender.lower()}-barn i {location} i året {date[-4:]}. Bruk kjente navnedatabaser hvis du er usikker.
+- Ikke bruk navn som kan forveksles med motsatt kjønn, som "Bram" for jenter eller "Jansje" for gutter.
+- Start historien med: "Hei, Sofie og {navn}. Jeg heter [NAVN], og jeg er [ALDER] år."
 - Dersom etnisitet og samfunnslag ikke er angitt av brukeren, skal du selv velge og nevne dette tidlig i historien på en naturlig måte.
 - Snakke i jeg-form og fortelle en personlig og levende historie om hvordan det er å leve akkurat her og nå.
 
@@ -195,7 +197,7 @@ Skriv en kort melding til personen du møtte.
         doc.add_page_break()
         doc.add_heading("Refleksjonsspørsmål", level=1)
         reflection_text = """
- ෝe Refleksjon etter tidsreisen med Sofie
+🗞 Refleksjon etter tidsreisen med Sofie
 
 📍 Ditt valg:
 Navn: ___________________________
