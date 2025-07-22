@@ -89,7 +89,8 @@ Når dere ankommer, blir dere møtt av en lokal ungdom, som har fått et realist
 
 - Henvende seg direkte til både Sofie og {navn} i åpningsreplikken.
 - Presentere seg med navn og alder – velg et navn som er realistisk for tid, sted og kjønn.
-- Bruk alltid det kjønnet som brukeren har valgt: {gender.lower()}. Hvis brukeren har valgt "tilfeldig", velger du selv.
+- Bruk alltid det kjønnet som brukeren har valgt: {gender.lower()}. Hvis brukeren har valgt jente, må navnet være et vanlig jentenavn for {location} i året {date[-4:]}. Hvis brukeren har valgt gutt, må navnet være et vanlig guttenavn for det stedet og tiden.
+- Sjekk at navnet ikke brukes for motsatt kjønn.
 - Dersom etnisitet og samfunnslag ikke er angitt av brukeren, skal du selv velge og nevne dette tidlig i historien på en naturlig måte.
 - Snakke i jeg-form og fortelle en personlig og levende historie om hvordan det er å leve akkurat her og nå.
 
