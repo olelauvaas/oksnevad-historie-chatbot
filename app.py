@@ -116,14 +116,24 @@ else:
     st.markdown(f"### 📖 Historien din: {st.session_state.story_data['location']} {st.session_state.story_data['date']}")
     st.markdown(st.session_state.story_data["story"])
 
-    if st.session_state.story_data["gender"] == "Jente":
-        gender_prompt = "teenage girl"
-    elif st.session_state.story_data["gender"] == "Gutt":
-        gender_prompt = "teenage boy"
-    else:
-        gender_prompt = "teenage person"
+    # 🔍 Hent navn fra første linje i historien (ekstra forbedring for bildeprompt)
+    historietekst = st.session_state.story_data["story"]
+    første_linje = historietekst.split("\n")[0]
+    forteller_navn = første_linje.split(" ")[3] if len(første_linje.split(" ")) > 3 else "the person"
+    forteller_kjønn = st.session_state.story_data["gender"]
 
-    dalle_prompt = f"Portrait of a {gender_prompt} from {st.session_state.story_data['extra_details'] if st.session_state.story_data['extra_details'] else 'local community'} in {st.session_state.story_data['location']} in the year {st.session_state.story_data['date'][-4:]}, realistic style, detailed, standing in historical setting"
+    # 🎨 Presis bildeprompt
+    if forteller_kjønn == "Jente":
+        gender_term = "girl"
+    elif forteller_kjønn == "Gutt":
+        gender_term = "boy"
+    else:
+        gender_term = "teenager"
+
+    year = st.session_state.story_data['date'][-4:]
+    location = st.session_state.story_data['location']
+    dalle_prompt = f"Realistic portrait of a {gender_term} named {forteller_navn}, from {location} in {year}, wearing authentic historical clothing, standing in a historical street, highly detailed, realistic style"
+
     dalle_response = client.images.generate(
         prompt=dalle_prompt,
         model="dall-e-3",
