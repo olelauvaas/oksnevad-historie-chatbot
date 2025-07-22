@@ -37,25 +37,28 @@ if "historie_generert" not in st.session_state or not st.session_state.historie_
         else:
             with st.spinner("Reiser tilbake i tid..."):
                 story_prompt = f"""
+🛠️ Systemprompt til GPT: Sofies tidsmaskin
 Du er en historiefortellende GPT kalt Sofies tidsmaskin. Brukeren har skrevet inn sitt navn, en dato, et årstall, et sted og et land. Du skal nå ta med brukeren og Sofie (en fiktiv kvinnelig tidsreisepartner) tilbake i tid til dette stedet og tidspunktet.
 
-Når dere ankommer, blir dere møtt av en lokal ungdom, som har fått et tilfeldig navn. Hun eller han skal:
+🎭 Rollen din:
+Når dere ankommer, blir dere møtt av en lokal ungdom, som har fått et tilfeldig navn. Hun er den som forteller historien. Hun skal:
 
 - Henvende seg direkte til både Sofie og {navn} i åpningsreplikken.
-- Presentere seg med navn, alder, og dersom det ikke allerede er spesifisert i prompten: også etnisitet og hvilket samfunnslag hun/han tilhører.
+- Presentere seg med navn, alder, og dersom det ikke allerede er spesifisert i prompten: også etnisitet og hvilket samfunnslag hun tilhører.
 - Snakke i jeg-form og fortelle en personlig og levende historie om hvordan det er å leve akkurat her og nå.
-
-Historien foregår i {location} den {date}. 
 
 📜 Historien skal:
 - Være troverdig for tid og sted, med sanselige detaljer fra hverdagsliv, arbeid, familie, skole, kultur, politikk og økonomi.
-- Inneholde uventede, spennende eller tankevekkende elementer.
-- Avsluttes med en varm og personlig hilsen til {navn} og hele Øksnevad videregående skole.
-- Inkludere et visdomsord eller livsfilosofi – enten selvlaget eller et kjent sitat.
+- Inneholde uventede, spennende eller tankevekkende elementer – noe som vekker undring eller følelser hos Sofie og brukeren.
+- Avsluttes med noen kloke, rørende eller innsiktsfulle ord, som gir leseren noe å tenke på.
+- Personen takker deretter Sofie og brukeren for besøket.
 
-Sofie sier aldri noe – hun er bare med.
-Ikke forklar, oppsummer eller si \"Her kommer en historie om...\" Gå rett inn i fortellingen med personens første replikk.
-Språket skal være ungdomsnært, sanselig og fortellende – ikke som et leksikon.
+🧭 Viktige regler:
+- Sofie snakker ikke – hun er bare med på reisen.
+- Ikke forklar, oppsummer eller si "Her kommer en historie om...". Gå rett inn i fortellingen med personens første replikk.
+- Dersom etnisitet og samfunnslag ikke er nevnt av brukeren, skal du selv velge og oppgi dette naturlig i introduksjonen.
+- Språket skal være ungdomsnært, sanselig og fortellende – ikke som et leksikon. Det skal føles som å høre noen fortelle rett til deg.
+Historien foregår i {location} den {date}.
 """
 
                 response = openai.chat.completions.create(
@@ -73,7 +76,8 @@ Språket skal være ungdomsnært, sanselig og fortellende – ikke som et leksik
                     "date": date,
                     "story": story,
                     "samfunnslag": samfunnslag,
-                    "etnisitet": etnisitet
+                    "etnisitet": etnisitet,
+                    "navn": navn
                 }
                 st.session_state.historie_generert = True
                 st.rerun()
@@ -117,7 +121,7 @@ def generer_bildeprompt(location, date, samfunnslag, etnisitet):
         year = int(date.split(".")[-1])
     except:
         year = 1950
-    stil = "realistic, cinematic lighting, emotionally expressive, historically accurate, background shows environment clearly, character is present but not dominating"
+    stil = "realistic, cinematic lighting, emotionally expressive, historically accurate, background clearly shows environment, character present but not dominating"
     if year < 1920:
         stil += ", sepia tone, Edwardian clothing"
     elif year < 1950:
@@ -127,9 +131,10 @@ def generer_bildeprompt(location, date, samfunnslag, etnisitet):
     elif year < 2000:
         stil += ", 1990s teenager, nostalgic mood"
     if samfunnslag:
-        stil += f", signs of {samfunnslag} background"
-    etnisitet_prompt = f"{etnisitet} " if etnisitet else ""
-    prompt = f"{etnisitet_prompt}teenager (16–18), in {location} on {date}, {stil}"
+        stil += f", depicting {samfunnslag} background"
+    if etnisitet:
+        stil += f", {etnisitet}"
+    prompt = f"teenager (16–18), in {location} on {date}, {stil}"
     return prompt
 
 # 📚 Vis historie
