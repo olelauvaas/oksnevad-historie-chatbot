@@ -100,22 +100,10 @@ Historien foregår i {location} den {date}.
             "story": story,
             "navn": navn,
             "date": date,
-            "location": location
+            "location": location,
+            "extra_details": extra_details
         }
 
-        # 🔍 Generer bilde
-        dalle_prompt = f"Portrait of a teenage girl from {extra_details if extra_details else 'local community'} in {location} in the year {date[-4:]}, realistic style, detailed, standing in historical setting"
-        dalle_response = client.images.generate(
-            prompt=dalle_prompt,
-            model="dall-e-3",
-            size="1024x1024",
-            n=1
-        )
-        image_url = dalle_response.data[0].url
-        image_response = requests.get(image_url)
-        image = Image.open(BytesIO(image_response.content))
-
-        st.session_state.story_data["image"] = image
         st.session_state.historie_generert = True
         st.rerun()
 
@@ -123,8 +111,21 @@ Historien foregår i {location} den {date}.
 else:
     st.markdown("---")
     st.markdown(f"### 📖 Historien din: {st.session_state.story_data['location']} {st.session_state.story_data['date']}")
-    st.image(st.session_state.story_data["image"], caption="Din tidsreisevenn", use_column_width=True)
     st.markdown(st.session_state.story_data["story"])
+
+    # 🔍 Generer bilde
+    dalle_prompt = f"Portrait of a teenage girl from {st.session_state.story_data['extra_details'] if st.session_state.story_data['extra_details'] else 'local community'} in {st.session_state.story_data['location']} in the year {st.session_state.story_data['date'][-4:]}, realistic style, detailed, standing in historical setting"
+    dalle_response = client.images.generate(
+        prompt=dalle_prompt,
+        model="dall-e-3",
+        size="1024x1024",
+        n=1
+    )
+    image_url = dalle_response.data[0].url
+    image_response = requests.get(image_url)
+    image = Image.open(BytesIO(image_response.content))
+
+    st.image(image, caption="Din tidsreisevenn", use_container_width=True)
 
     # 📄 Lag PDF
     if st.button("📥 Last ned som PDF"):
