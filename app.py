@@ -58,7 +58,6 @@ Når dere ankommer, blir dere møtt av en lokal ungdom, som har fått et tilfeld
 - Være troverdig for tid og sted, med sanselige detaljer fra hverdagsliv, arbeid, familie, skole (kun hvis realistisk for personens klasse og tid), kultur, politikk og økonomi.
 - Ikke bruke moderne ord, begreper eller uttrykk som ikke eksisterte i perioden – som \"dorullskip\", plastleker eller referanser til nåtidige konsepter.
 - Inneholde uventede, spennende eller tankevekkende elementer – noe som vekker undring eller følelser hos Sofie og brukeren.
-- Avsluttes med noen kloke, rørende eller innsiktsfulle ord, som gir leseren noe å tenke på.
 - Personen takker deretter Sofie og brukeren for besøket.
 
 🧭 Viktige regler:
@@ -72,7 +71,7 @@ Historien foregår i {location} den {date}.
                 response = openai.chat.completions.create(
                     model="gpt-4o",
                     messages=[
-                        {"role": "system", "content": "Du er en historieforteller med ungdommelig og sanselig stil, inspirert av varme og realisme. Du skriver i jeg-form og lar en ungdom fortelle en levende og følelsesnær historie fra sitt liv, basert på tid og sted. Historien starter med personlig hilsen og avsluttes med visdomsord og hilsen."},
+                        {"role": "system", "content": "Du er en historieforteller med ungdommelig og sanselig stil, inspirert av varme og realisme. Du skriver i jeg-form og lar en ungdom fortelle en levende og følelsesnær historie fra sitt liv, basert på tid og sted. Historien starter med personlig hilsen."},
                         {"role": "user", "content": story_prompt}
                     ],
                     max_tokens=3000
@@ -106,7 +105,7 @@ else:
     st.text_area("Historien:", st.session_state.story_data['story'], height=400)
 
     if st.session_state.image_url:
-        st.image(st.session_state.image_url, caption="Et glimt fra reisen", use_column_width=True)
+        st.image(st.session_state.image_url, caption="Et glimt fra reisen", use_container_width=True)
 
     nytt_spm = st.text_input("Still et oppfølgingsspørsmål")
     if st.button("Still spørsmål"):
