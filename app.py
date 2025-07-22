@@ -75,7 +75,7 @@ if "historie_generert" not in st.session_state or not st.session_state.historie_
     date = st.text_input("Dato (DD.MM.ÅÅÅÅ)", placeholder="f.eks. 01.05.1897")
     location = st.text_input("Sted og land", placeholder="f.eks. Bridgetown, Barbados")
     extra_details = st.text_input("(Valgfritt) Etnisitet og samfunnslag", placeholder="f.eks. afro-karibisk, arbeiderklasse")
-    gender = st.selectbox("Velg kjønn på personen du møter", options=["Tilfeldig", "Jente", "Gutt"], index=0)
+    gender = st.selectbox("Velg kjønn på personen du møter", options=["Jente", "Gutt"], index=0)
 
     if st.button("Reis i tid") and navn and date and location:
 
@@ -147,7 +147,8 @@ if st.session_state.get("historie_generert"):
     st.write(st.session_state.story_data["story"])
 
     if st.session_state.story_data.get("image") is None:
-        bildeprompt = f"A realistic painting of a {st.session_state.story_data['gender'].lower()} teenager in {st.session_state.story_data['location']} in the year {st.session_state.story_data['date'][-4:]}, historical clothing, natural light, facing forward"
+        gender_eng = {"Jente": "girl", "Gutt": "boy"}.get(st.session_state.story_data["gender"], "teenager")
+        bildeprompt = f"A realistic painting of a {gender_eng} in {st.session_state.story_data['location']} in the year {st.session_state.story_data['date'][-4:]}, historical clothing, natural light, facing forward"
         bilde = generer_bilde(bildeprompt)
         st.session_state.story_data["image"] = bilde
         st.rerun()
