@@ -65,20 +65,21 @@ Når dere ankommer, blir dere møtt av en lokal ungdom, som har fått et tilfeld
 - Ikke forklar, oppsummer eller si "Her kommer en historie om...". Gå rett inn i fortellingen med personens første replikk.
 - Språket skal være ungdomsnært, sanselig og fortellende – ikke som et leksikon. Det skal føles som å høre noen fortelle rett til deg.
 - Ikke referer til Øksnevad vgs eller andre moderne institusjoner.
+- Historien skal være lang og detaljert – minst 700 ord. Unngå skrivefeil, og bruk variert, naturlig språk.
 Historien foregår i {location} den {date}.
 """
 
                 response = openai.chat.completions.create(
                     model="gpt-4o",
                     messages=[
-                        {"role": "system", "content": "Du er en historieforteller med ungdommelig og sanselig stil, inspirert av varme og realisme. Du skriver i jeg-form og lar en ungdom fortelle en levende og følelsesnær historie fra sitt liv, basert på tid og sted. Historien starter med personlig hilsen."},
+                        {"role": "system", "content": "Du er en historieforteller med ungdommelig og sanselig stil, inspirert av varme og realisme. Du skriver i jeg-form og lar en ungdom fortelle en levende og følelsesnær historie fra sitt liv, basert på tid og sted. Historien starter med personlig hilsen og skal være lang, detaljert og fri for skrivefeil."},
                         {"role": "user", "content": story_prompt}
                     ],
                     max_tokens=3000
                 )
 
                 story = response.choices[0].message.content
-                image_prompt = f"Realistic portrait of a young girl named {navn} from {location} in {date}, {etnisitet if etnisitet else 'local'} ethnicity, historical outfit from that era, expressive face, with visible background from {location}, cinematic lighting"
+                image_prompt = f"Realistic portrait of a young girl named {navn} from {location} in {date}, {etnisitet if etnisitet else 'local'} ethnicity, historical outfit from that era, expressive face, visible cinematic background of {location}, ultra-detailed, photorealistic"
 
                 image_response = openai.images.generate(
                     model="dall-e-3",
@@ -102,28 +103,17 @@ Historien foregår i {location} den {date}.
 # 📖 Vis historie og bilde
 else:
     st.markdown(f"#### {st.session_state.story_data['date']} – {st.session_state.story_data['location']}")
-    st.text_area("Historien:", st.session_state.story_data['story'], height=400)
+    st.text_area("Historien:", st.session_state.story_data['story'], height=500)
 
     if st.session_state.image_url:
         st.image(st.session_state.image_url, caption="Et glimt fra reisen", use_container_width=True)
 
-    nytt_spm = st.text_input("Still et oppfølgingsspørsmål")
-    if st.button("Still spørsmål"):
-        if nytt_spm:
-            follow_up_prompt = f"Bruk samme stil og forteller som forrige historie, og svar på dette oppfølgingsspørsmålet: '{nytt_spm}'"
-            response = openai.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {"role": "user", "content": follow_up_prompt}
-                ],
-                max_tokens=1000
-            )
-            st.session_state.sporsmal.append((nytt_spm, response.choices[0].message.content))
-            st.rerun()
-
-    for idx, (spm, svar) in enumerate(st.session_state.sporsmal):
-        st.markdown(f"**Spørsmål {idx+1}:** {spm}")
-        st.markdown(f"{svar}")
+    if st.button("🔁 Lag en ny historie"):
+        st.session_state.historie_generert = False
+        st.session_state.story_data = {}
+        st.session_state.sporsmal = []
+        st.session_state.image_url = None
+        st.rerun()
 
     if st.button("Last ned som PDF"):
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmpfile:
@@ -142,10 +132,3 @@ else:
 
             with open(tmpfile.name, "rb") as f:
                 st.download_button("📄 Last ned historien som PDF", f, file_name="sofies_tidsreise.pdf")
-
-    if st.button("🔁 Lag en ny historie"):
-        st.session_state.historie_generert = False
-        st.session_state.story_data = {}
-        st.session_state.sporsmal = []
-        st.session_state.image_url = None
-        st.rerun()
